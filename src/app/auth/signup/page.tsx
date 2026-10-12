@@ -76,10 +76,10 @@ export default function RegisterPage() {
   useEffect(() => {
     const detectCountry = async () => {
       try {
-        const response = await fetch("https://ipapi.co/json/");
+        const response = await fetch("/api/v1/geo");
         const data = await response.json();
         const countryOption = countryOptions.find(
-          (option) => option.value === data.country_code
+          (option) => option.value === data.countryCode
         );
         setSelectedCountry(countryOption || countryOptions.find((o) => o.value === "US"));
       } catch {

@@ -5,7 +5,7 @@ import { getStoredToken } from '@/utils/authHeader';
 export const miningMachinesApiSlice = createApi({
   reducerPath: 'miningMachinesApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_URL || '',
+    baseUrl: process.env.NEXT_PUBLIC_API_URL || '/',
     credentials: 'include',
     // Create/update/delete now require an admin session
     prepareHeaders: (headers) => {

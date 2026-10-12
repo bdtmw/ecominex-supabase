@@ -2,7 +2,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { getStoredToken } from '@/utils/authHeader';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+// '/' (not '') so 'api/v1/..' resolves from the site root instead of the current page path
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/';
 
 export const baseApiSlice = createApi({
   reducerPath: 'api',
