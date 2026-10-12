@@ -18,7 +18,7 @@ Browser ──► Next.js pages (src/app)
    exist* because the tables come from the migrations.) Or use `supabase db push` with the Supabase CLI.
 2. **Auth settings** (Authentication → Providers → Email): keep *Confirm email* **on**; you can turn off Supabase's own emails —
    this app sends its own OTP and reset emails (see *Email* below).
-3. `cp .env.example .env.local` and fill it in (Supabase URL/keys, `APP_URL`, `APP_JWT_SECRET`, `CRON_SECRET`, email).
+3. `cp .env.example .env.local` and fill it in (Supabase URL, publishable key and secret key, `APP_URL`, `APP_JWT_SECRET`, `CRON_SECRET`, email).
 4. `npm ci && npm run dev`.
 5. **First admin:** sign up in the app, verify the email, then in the SQL editor:
    `update public.profiles set role = 'admin' where email = 'you@example.com';`

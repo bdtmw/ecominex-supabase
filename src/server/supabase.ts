@@ -9,7 +9,9 @@ const opts = { auth: { autoRefreshToken: false, persistSession: false, detectSes
 /** Service-role client: bypasses RLS. Server-only; every caller must authorise first. */
 export function admin(): SupabaseClient {
   if (!adminClient) {
-    adminClient = createClient(env("NEXT_PUBLIC_SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"), opts);
+    // Accepts the legacy name (service_role) and the newer one (secret key)
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || env("SUPABASE_SERVICE_ROLE_KEY");
+    adminClient = createClient(env("NEXT_PUBLIC_SUPABASE_URL"), key, opts);
   }
   return adminClient;
 }
@@ -17,7 +19,9 @@ export function admin(): SupabaseClient {
 /** Anon client, used only to verify a password with signInWithPassword. */
 export function anon(): SupabaseClient {
   if (!anonClient) {
-    anonClient = createClient(env("NEXT_PUBLIC_SUPABASE_URL"), env("NEXT_PUBLIC_SUPABASE_ANON_KEY"), opts);
+    // Accepts the legacy name (anon) and the newer one (publishable key)
+    const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || env("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
+    anonClient = createClient(env("NEXT_PUBLIC_SUPABASE_URL"), key, opts);
   }
   return anonClient;
 }
