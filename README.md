@@ -13,9 +13,9 @@ Browser ──► Next.js pages (src/app)
 
 ## Setup
 
-1. **Create a Supabase project**, then in the SQL editor run, in order:
-   `supabase/migrations/0001_schema.sql`, `0002_functions.sql`, `0003_rls.sql`, then `supabase/seed.sql`
-   (or `supabase db push` with the Supabase CLI).
+1. **Create a Supabase project**, then in the SQL editor paste and run **`supabase/setup.sql`** once. It is the three
+   migrations plus the seed in the right order. (Running `seed.sql` alone fails with *relation "mining_machines" does not
+   exist* because the tables come from the migrations.) Or use `supabase db push` with the Supabase CLI.
 2. **Auth settings** (Authentication → Providers → Email): keep *Confirm email* **on**; you can turn off Supabase's own emails —
    this app sends its own OTP and reset emails (see *Email* below).
 3. `cp .env.example .env.local` and fill it in (Supabase URL/keys, `APP_URL`, `APP_JWT_SECRET`, `CRON_SECRET`, email).
