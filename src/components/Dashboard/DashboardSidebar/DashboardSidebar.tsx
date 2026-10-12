@@ -89,7 +89,7 @@ export default function Sidebar({
         </button>
       )}
 
-      <nav aria-label="Admin navigation" className="-mr-2 min-h-0 flex-1 space-y-3.5 overflow-y-auto pr-2">
+      <nav aria-label="Admin navigation" className="-mr-2 min-h-0 flex-1 space-y-3.5 overflow-y-auto pr-2 [scrollbar-color:#3a3a3a_transparent] [scrollbar-width:thin]">
         {groups.map((group, gi) => (
           <div key={group.title || gi}>
             {group.title && !isCollapsed && (

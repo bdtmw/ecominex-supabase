@@ -219,6 +219,12 @@ const UserDetailsPage = () => {
               <p className="text-gray-300 mt-1 font-[500]">
                 {currentUser?.email || "N/A"}
               </p>
+              <Link
+                href={`/Dashboard/Ledger?user=${userId}`}
+                className="mt-3 inline-flex items-center gap-2 rounded-lg border border-green-500/50 px-3 py-1.5 text-sm font-medium text-green-400 transition hover:bg-green-500/10"
+              >
+                Open full ledger
+              </Link>
             </div>
           </div>
 

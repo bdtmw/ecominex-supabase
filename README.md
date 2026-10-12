@@ -49,11 +49,34 @@ Removed because the UI never used them: the legacy `/withdrawals/create`, `/with
 * Codes and reset tokens are stored hashed; OTPs are limited to 5 attempts; responses never reveal whether an email exists.
 * Machine/deposit uploads are validated (image types, 5 MB).
 
+## Admin dashboard
+| Page | What it answers |
+|---|---|
+| **Overview** (`/Dashboard`) | *What needs a decision today?* Pending withdrawals (with age, flagged overdue after 72h), unread messages, dormant users holding funds. Then money in vs out for the chosen period with change vs the previous period, cash-flow / investments / sign-up charts, funds held for users, largest balances and the latest ledger entries. |
+| **Users** (`/Dashboard/AllUser`) | Segments with live counts (new this week, pending withdrawal, dormant with funds, never deposited, no machines…), sortable money columns (balance, deposited, withdrawn, machines, referrals, last activity), search, paging, CSV export, per-user ledger link, add balance. Deleting a user who has money or history requires typing their email. |
+| **Ledger** (`/Dashboard/Ledger`) | Every money movement in one record: filter by period, type, status, user, amount or text; totals for the filtered set (in / out / net / on hold); CSV export of *all* matching entries. `?user=<id>` filters to one person. |
+
+Shortcuts: `Ctrl/Cmd + K` jumps to any page or user. Filters live in the URL, so any view can be bookmarked or shared.
+
+How the numbers are defined (so they can be audited): *Deposits credited* = approved admin credits and confirmed NOWPayments;
+*Withdrawals paid* = approved withdrawals on the **payout date**; a pending withdrawal is a *hold* and a rejected one has no effect;
+*Funds held* = sum of all balances (what the platform owes users); days are UTC. All of it comes from one SQL view (`v_ledger`) and four
+read-only functions (`supabase/migrations/0004_analytics_and_ledger.sql`), exposed only through `/api/v1/admin/*` to admins.
+
+> Upgrading an existing project: run `supabase/migrations/0004_analytics_and_ledger.sql` once in the SQL editor
+> (it is safe to re-run). Referral bonuses now also write a `REFERRAL_BONUS` ledger entry.
+
+![Overview](docs/admin-overview.png)
+![Users](docs/admin-users.png)
+![Ledger](docs/admin-ledger.png)
+
 ## Tests
 ```bash
-npm test          # 36 tests on an in-memory Postgres (PGlite): money logic, RLS, setup.sql and the Mongo migration. No Supabase account needed.
+npm test            # 57 tests: money logic, RLS, ledger/analytics SQL, migration, CSV and chart maths. No Supabase needed.
 npm run typecheck
+npm run build && npm run test:e2e   # 40 browser checks: real pages + API + SQL against a fake Supabase (needs Playwright's Chromium)
 ```
+`tests/e2e/serve.mjs` serves the app with demo data (about 40 users, 100 days of activity) for manual exploring.
 
 ## Migrating existing MongoDB data
 Run this **on your own computer** (never on Vercel). Put `MONGO_URI` only in your local `.env.local`, next to the Supabase variables.

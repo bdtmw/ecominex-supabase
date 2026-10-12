@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, UserPlus, Cpu, WalletCards, History, MessageSquare, Settings,
+  LayoutDashboard, Users, UserPlus, Cpu, WalletCards, History, MessageSquare, Settings, BookOpen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -23,13 +23,13 @@ export const ADMIN_NAV: NavGroup[] = [
   {
     title: "Overview",
     items: [
-      { label: "Dashboard", href: "/Dashboard", icon: LayoutDashboard, description: "Stats, recent users and pending requests", keywords: ["home", "overview", "stats"] },
+      { label: "Dashboard", href: "/Dashboard", icon: LayoutDashboard, description: "KPIs, trends and what needs attention", keywords: ["home", "overview", "stats", "analytics", "kpi", "report", "cash flow"] },
     ],
   },
   {
     title: "People",
     items: [
-      { label: "All Users", href: "/Dashboard/AllUser", icon: Users, description: "Find, view and manage users", keywords: ["customers", "accounts", "balance", "add balance", "delete user"] },
+      { label: "All Users", href: "/Dashboard/AllUser", icon: Users, description: "Segments, balances and activity for every user", keywords: ["customers", "accounts", "balance", "add balance", "delete user", "dormant", "new users", "export"] },
       { label: "Assign Machines", href: "/Dashboard/Assign", icon: UserPlus, description: "Give a mining machine to a user", keywords: ["assign", "give", "allocate", "user machine"] },
     ],
   },
@@ -42,6 +42,7 @@ export const ADMIN_NAV: NavGroup[] = [
   {
     title: "Finance",
     items: [
+      { label: "Ledger", href: "/Dashboard/Ledger", icon: BookOpen, description: "Every money movement, searchable and exportable", keywords: ["transactions", "ledger", "statement", "audit", "export", "csv", "deposits", "payments", "history", "movements"] },
       { label: "Withdrawals", href: "/Dashboard/AllTransaction", icon: WalletCards, description: "Approve or reject pending withdrawals", keywords: ["pending", "payout", "approve", "reject", "transactions"], badge: "pendingWithdrawals" },
       { label: "Withdrawal History", href: "/Dashboard/AdminTran", icon: History, description: "All processed withdrawals and filters", keywords: ["history", "all transactions", "report", "approved", "rejected"] },
     ],

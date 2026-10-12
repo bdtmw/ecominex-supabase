@@ -8,8 +8,8 @@ import path from "node:path";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const migrations = path.join(here, "../../supabase/migrations");
 
-export async function createDb() {
-  const db = new PGlite();
+export async function createDb(options = {}) {
+  const db = new PGlite(options);
   await db.exec(`
     create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
     create schema auth;

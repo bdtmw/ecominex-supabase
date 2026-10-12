@@ -1,23 +1,19 @@
-
-import { AdminNavbar } from "@/components/AdminNavbar";
-import AdminUsersPage from "@/components/AllProduct/AllUser";
+import { Suspense } from "react";
 import ProtectedRoutes from "@/components/config/protectedRoute/ProtectedRoutes";
-import AllUserTabs from "@/components/Dashboard/AllUsers/AllUsers";
 import DashboardLayout from "@/components/Dashboard/DasboardLayout/DasboardLayout";
 import DashboardHeader from "@/components/Dashboard/DashboardHeader/DashboardHeader";
-
+import UserManagement from "@/components/Dashboard/analytics/UserManagement";
 
 function Page() {
-
   return (
     <ProtectedRoutes>
       <DashboardLayout>
-        <DashboardHeader title="User Management" desc="Manage and track all user activity with real-time updates and organized details." />
-        <AllUserTabs />
-        {/* <AdminUsersPage /> */}
+        <DashboardHeader title="Users" desc="Find who needs attention, see their money at a glance, and open their ledger." />
+        <Suspense fallback={null}>
+          <UserManagement />
+        </Suspense>
       </DashboardLayout>
     </ProtectedRoutes>
   );
 }
-
 export default Page;

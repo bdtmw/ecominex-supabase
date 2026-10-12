@@ -12,7 +12,7 @@ test("supabase/setup.sql runs in one go on a fresh database and creates everythi
     create schema storage; create table storage.buckets (id text primary key, name text, public boolean);
   `);
   await db.exec(readFileSync(new URL("../../supabase/setup.sql", import.meta.url), "utf8"));
-  const t = await db.query(`select count(*)::int c from information_schema.tables where table_schema='public'`);
+  const t = await db.query(`select count(*)::int c from information_schema.tables where table_schema='public' and table_type='BASE TABLE'`);
   assert.equal(t.rows[0].c, 10);
   const m = await db.query(`select count(*)::int c from public.mining_machines where is_share_based`);
   assert.equal(m.rows[0].c, 1);
