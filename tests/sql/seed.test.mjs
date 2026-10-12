@@ -17,12 +17,7 @@ test("seed creates the share machine exactly once and shares can be bought from 
 });
 
 test("migration ids are deterministic valid UUIDs", async () => {
-  // Re-implement the same function the script uses (kept in sync by this test).
-  const crypto = await import("node:crypto");
-  const src = readFileSync(new URL("../../scripts/migrate-from-mongo.mjs", import.meta.url), "utf8");
-  const body = src.match(/function uuidFor[\s\S]*?\n}\n/)[0];
-  const NS = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
-  const uuidFor = new Function("crypto", "NS", `${body}; return uuidFor;`)(crypto.default, NS);
+  const { uuidFor } = await import("../../scripts/lib/migrate.mjs");
   const a = uuidFor("user", "507f1f77bcf86cd799439011");
   assert.match(a, /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   assert.equal(a, uuidFor("user", "507f1f77bcf86cd799439011"));

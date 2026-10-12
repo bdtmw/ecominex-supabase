@@ -51,18 +51,28 @@ Removed because the UI never used them: the legacy `/withdrawals/create`, `/with
 
 ## Tests
 ```bash
-npm test          # 27 SQL tests on an in-memory Postgres (PGlite): money logic + RLS. No Supabase account needed.
+npm test          # 36 tests on an in-memory Postgres (PGlite): money logic, RLS, setup.sql and the Mongo migration. No Supabase account needed.
 npm run typecheck
 ```
 
 ## Migrating existing MongoDB data
+Run this **on your own computer** (never on Vercel). Put `MONGO_URI` only in your local `.env.local`, next to the Supabase variables.
 ```bash
 npm i --no-save mongodb
-MONGO_URI=... NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run migrate:mongo            # dry run
-MONGO_URI=... NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run migrate:mongo -- --commit
+node --env-file=.env.local scripts/migrate-from-mongo.mjs            # 1) DRY RUN: reads + validates, writes nothing
+node --env-file=.env.local scripts/migrate-from-mongo.mjs --commit   # 2) writes to Supabase
 ```
-Users are created with a random password (bcrypt hashes can't be imported) — they sign in via **Forgot password**.
-Balances, machines, assignments, shares, transactions, deposits and contacts are copied; ids are deterministic so re-running is safe.
+* Safe to re-run: every row gets a deterministic uuid from its Mongo `_id` and is upserted.
+* Users get a random password (bcrypt hashes can't be imported) and sign in via **Forgot password**.
+* Copied: users, balances, machines, user machines, shares, transactions, deposits, contacts.
+  Old `User.mainBalance` is added to deposited funds (`admin_add`). Duplicate balance documents keep the most recent.
+  Negative balances are clamped to 0 (the new schema forbids them).
+* It writes `migration-report.json` and **`migration-discrepancies.csv`**: every user whose balance was changed or whose old
+  `totalBalance` didn't match `adminAdd + miningBalance` (the old app could lose referral bonuses). Review it before going live.
+* Skipped (and counted in the report): records whose user no longer exists, users without a unique email, transactions with unknown types.
+* Pending withdrawals stay pending and reserve funds; process them in the admin panel. The legacy `withdrawals` collection is not migrated.
+* Typical go-live: dry run -> review CSV -> `--commit` on a quiet moment -> switch DNS. Old deposits/transactions created
+  in MongoDB *after* the run are not copied, so re-run `--commit` right before cutover (it only adds/updates).
 
 ## Email
 `MAIL_EMAIL`/`MAIL_PASSWORD` (Gmail app password) or any SMTP server (`SMTP_*`). Used for signup OTP, 2FA login codes,
