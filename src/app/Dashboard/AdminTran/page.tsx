@@ -1,19 +1,17 @@
-import AdminWithdrawaAll from '@/components/AllProduct/AdminTran';
-import AdminTransactionsPage from '@/components/AllProduct/AllTransaction'
-import LandingLayout from '@/components/Layouts/LandingLayout'
-import DashboardLayout from '@/components/myAccount/layout';
-import React from 'react'
+import React from "react";
+import DashboardLayout from "@/components/Dashboard/DasboardLayout/DasboardLayout";
+import DashboardHeader from "@/components/Dashboard/DashboardHeader/DashboardHeader";
+import ProtectedRoutes from "@/components/config/protectedRoute/ProtectedRoutes";
+import AdminWithdrawaAll from "@/components/AllProduct/AdminTran";
 
-function page() {
+function Page() {
   return (
-    <div>
-      {/* <LandingLayout> */}
+    <ProtectedRoutes>
       <DashboardLayout>
-        <AdminWithdrawaAll/>
+        <DashboardHeader title="Withdrawal History" desc="Every processed withdrawal, with filters by status and date." />
+        <AdminWithdrawaAll />
       </DashboardLayout>
-      {/* </LandingLayout> */}
-    </div>
-  )
+    </ProtectedRoutes>
+  );
 }
-
-export default page;
+export default Page;

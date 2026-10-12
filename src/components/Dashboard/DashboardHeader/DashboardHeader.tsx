@@ -4,14 +4,11 @@ import React from "react";
 import { Search, Settings } from "lucide-react";
 import userImg from "../../../../public/userdash.jpg";
 import Image from "next/image";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { RootState } from "@/lib/store/store";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { logout } from "@/lib/feature/auth/authSlice";
-import { baseApiSlice } from "@/lib/store/apiSlice";
-import { useLogoutMutation } from "@/lib/feature/auth/authThunk";
-import Swal from "sweetalert2";
+import { usePathname } from "next/navigation";
+import { useConfirmLogout } from "@/hooks/useConfirmLogout";
 
 interface DashboardHeaderProps {
     children?: React.ReactNode;
@@ -22,64 +19,12 @@ interface DashboardHeaderProps {
 
 const DashboardHeader = ({ children, title, desc }: DashboardHeaderProps) => {
 
-    const router = useRouter();
-    const dispatch = useDispatch();
     const pathname = usePathname();
-    const [logoutApi] = useLogoutMutation();
     const { user, isAuthenticated } = useSelector(
         (state: RootState) => state.auth
     );
 
-    const handleAdminLogout = async () => {
-        const confirm = await Swal.fire({
-            title: "Are you sure?",
-            text: "You will be logged out of your account.",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonText: "Yes, Logout",
-            cancelButtonText: "Cancel",
-            confirmButtonColor: "#22c55e",
-            background: "#1e1e1e",
-            color: "#fff",
-        });
-
-        if (!confirm.isConfirmed) return;
-
-        try {
-            await logoutApi().unwrap();
-
-            dispatch(logout());
-            dispatch(baseApiSlice.util.resetApiState());
-            localStorage.clear();
-            sessionStorage.clear();
-            
-            router.push("/");
-            Swal.fire({
-                icon: "success",
-                title: "Logged Out",
-                text: "You have been logged out successfully.",
-                timer: 1800,
-                showConfirmButton: false,
-                background: "#1e1e1e",
-                color: "#fff",
-            });
-
-            // setTimeout(() => {
-            // }, 1200);
-
-        } catch (error) {
-            Swal.fire({
-                icon: "error",
-                title: "Logout Failed",
-                text: "Something went wrong. Try again.",
-                background: "#1e1e1e",
-                color: "#fff",
-            });
-        }
-    };
-
-
-
+    const handleAdminLogout = useConfirmLogout();
 
     return (
     <header className="sticky top-0 z-40 bg-[#000]">

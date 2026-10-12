@@ -1,144 +1,103 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { User, LogOut, Cpu, ChevronRight, WalletMinimal, CreditCard, UsersRound, ScrollText, ShieldCheck, ArrowLeftRight, BookUser, LayoutDashboard, ShoppingCart, Settings, WalletCards, Users } from "lucide-react";
-import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
-import { logout, setUser } from "@/lib/feature/auth/authSlice";
-import { useDispatch, useSelector } from "react-redux";
-import { motion } from "framer-motion";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { CreditCard, LayoutDashboard, Settings, ShoppingCart } from "lucide-react";
+import { useSelector } from "react-redux";
 import { RootState } from "@/lib/store/store";
-import { useLogoutMutation } from "@/lib/feature/auth/authThunk";
-import { baseApiSlice } from "@/lib/store/apiSlice";
 import Sidebar from "../DashboardSidebar/DashboardSidebar";
+import TopBar from "../nav/TopBar";
+import CommandPalette from "../nav/CommandPalette";
+import { ADMIN_NAV, type NavGroup } from "../nav/adminNav";
+import { useAdminCounts } from "@/hooks/useAdminCounts";
+import { useConfirmLogout } from "@/hooks/useConfirmLogout";
 
-const adminMenu = [
-  { label: "Dashboard", icon: LayoutDashboard, link: "/Dashboard/" },
-  { label: "Machine", icon: ShoppingCart, link: "/Dashboard/Machine/" },
-  { label: "All Users", icon: Users, link: "/Dashboard/AllUser/" },
-  { label: "Transactions", icon: WalletCards , link: "/Dashboard/AllTransaction/" },
-  { label: "Manage Contacts", icon: ScrollText, link: "/Dashboard/contactUs/" },
-  { label: "Settings", icon: Settings  , link: "/Dashboard/UserProfile" },
+// Menu for non-admin accounts that land on these pages (kept from the previous version).
+const USER_NAV: NavGroup[] = [
+  {
+    title: "",
+    items: [
+      { label: "Dashboard", href: "/Dashboard", icon: LayoutDashboard, description: "Overview" },
+      { label: "Total Machine", href: "/Dashboard/TotalMachine", icon: ShoppingCart, description: "Your machines" },
+      { label: "Profile", href: "/Dashboard/UserProfile", icon: Settings, description: "Your profile" },
+      { label: "Payments", href: "/Dashboard/Payments", icon: CreditCard, description: "Payments" },
+      { label: "Referrals", href: "/Dashboard/Referral", icon: CreditCard, description: "Referrals" },
+    ],
+  },
 ];
 
-const userMenu = [
-  { label: "Dashboard", icon: LayoutDashboard, link: "/Dashboard" },
-  { label: "Total Machine", icon: ShoppingCart  , link: "/Dashboard/TotalMachine" },
-  { label: "Profile", icon: Settings, link: "/Dashboard/UserProfile" },
-  { label: "Payments", icon: CreditCard, link: "/Dashboard/Payments" },
-  { label: "Referrals", icon: CreditCard, link: "/Dashboard/Referral" },
-  { label: "Logout", icon: LogOut, link: "#" },
-];
-
-
-interface MenuLinkProps {
-    link: string;
-    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-    label: string;
-}
+const COLLAPSE_KEY = "admin.sidebar.collapsed";
 
 interface DashboardLayoutProps {
-    children: React.ReactNode;
+  children: React.ReactNode;
 }
+
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
-    const [showLogoutModal, setShowLogoutModal] = useState(false);
-    const [roleCheck, setroleCheck] = useState(false);
-    const dispatch = useDispatch();
-    const router = useRouter();
-    const pathname = usePathname();
-    const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
-    console.log(user, isAuthenticated);
-  
-    useEffect(() => {
-        if (user?.role === "admin") {
-            setroleCheck(true)
-        }
-    })
-    const [logoutApi] = useLogoutMutation();
-    const handleAdminLogout = async () => {
-        try {
-            await logoutApi().unwrap();
+  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const isAdmin = user?.role === "admin";
 
-            dispatch(logout());
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const confirmLogout = useConfirmLogout();
+  const { counts } = useAdminCounts(isAdmin);
 
-            dispatch(baseApiSlice.util.resetApiState());
-            localStorage.clear();
-            sessionStorage.clear();
-            router.push("/");
-        } catch (error) {
-            console.error("Admin logout failed:", error);
-        }
+  // remember the collapsed state between visits
+  useEffect(() => {
+    try { setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1"); } catch { /* storage unavailable */ }
+  }, []);
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((c) => {
+      try { localStorage.setItem(COLLAPSE_KEY, c ? "0" : "1"); } catch { /* ignore */ }
+      return !c;
+    });
+  }, []);
+
+  // Ctrl/Cmd + K opens the quick-jump search (admins only)
+  useEffect(() => {
+    if (!isAdmin) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen((o) => !o);
+      }
     };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isAdmin]);
 
-    const MenuLink: React.FC<MenuLinkProps> = ({ link, icon: Icon, label }) => {
-        const normalizePath = (path: string) => path.replace(/\/$/, ""); // remove trailing slash
-        const isActive =
-            normalizePath(link) === normalizePath(pathname) || // exact match
-            (link !== "/Dashboard" && normalizePath(pathname).startsWith(normalizePath(link))); // for subpages
+  const groups = useMemo(() => (isAdmin ? ADMIN_NAV : USER_NAV), [isAdmin]);
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
 
-
-        if (label === "Logout") {
-            return (
-                <motion.button
-                    onClick={() => setShowLogoutModal(true)}
-                    whileHover={{ scale: 1.03 }}
-                    className={`group flex w-full items-center space-x-3 rounded-xl p-3 border-l-4 border-transparent
-            ${isActive
-                            ? "bg-gradient-to-r from-[#21eb00]/20 to-transparent text-[#21eb00] border-[#21eb00] border-l-[2px]  "
-                            : "text-zinc-400 hover:bg-zinc-900 hover:text-white hover:border-[#21eb00]"
-                        }`}
-                >
-                    <Icon
-                        className={`h-5 w-5 transition-transform duration-300 group-hover:scale-110 
-            ${isActive ? "text-[#21eb00]" : "text-zinc-400 group-hover:text-white"}`}
-                    />
-                    <span className="font-medium">{label}</span>
-                </motion.button>
-            );
-        }
-
-        return (
-            <Link href={link} className={`group flex items-center space-x-3 rounded-xl p-2 border-l-4 border-transparent
-        ${isActive
-                    ? "bg-gradient-to-r from-[#21eb00]/20 to-transparent text-[#21eb00] border-[#21eb00]"
-                    : "text-zinc-400 hover:bg-zinc-900 hover:text-white hover:border-[#21eb00]"
-                }`}
-            >
-                <Icon
-                    className={`h-5 w-5 transition-transform duration-300 group-hover:scale-110 
-            ${isActive ? "text-[#21eb00]" : "text-zinc-400 group-hover:text-white"}`}
-                />
-                <span className="font-medium">{label}</span>
-                <ChevronRight
-                    className={`ml-auto h-4 w-4 opacity-0 transition-all duration-300 
-            ${isActive ? "text-[#21eb00] opacity-100" : "group-hover:opacity-100"}`}
-                />
-            </Link>
-        );
-    };
-
-       if (isAuthenticated && user?.role !== "admin") {
-        return (
-            <div className="flex justify-center items-center min-h-screen bg-transparent">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-green-500"></div>
-            </div>
-        );
-    }
-
+  if (isAuthenticated && user?.role !== "admin") {
     return (
-
-            <div className="flex items-stretch">
-                <Sidebar
-                    menu={roleCheck ? adminMenu : userMenu}
-                    onLogout={() => setShowLogoutModal(true)}
-                />
-
-                <main className=" bg-[#000] p-6 w-[100%]">
-                    {children}
-                </main>
-            </div>
-
+      <div className="flex min-h-screen items-center justify-center bg-transparent">
+        <div className="h-16 w-16 animate-spin rounded-full border-b-4 border-t-4 border-green-500" />
+      </div>
     );
+  }
+
+  return (
+    <div className="flex items-stretch">
+      <Sidebar
+        groups={groups}
+        counts={counts}
+        collapsed={collapsed}
+        onToggleCollapsed={toggleCollapsed}
+        mobileOpen={mobileOpen}
+        onMobileClose={closeMobile}
+        onOpenSearch={isAdmin ? () => setSearchOpen(true) : undefined}
+        onLogout={confirmLogout}
+        user={user}
+      />
+
+      <main className="min-w-0 w-full bg-[#000] p-4 sm:p-6">
+        <TopBar onOpenMenu={() => setMobileOpen(true)} onOpenSearch={() => setSearchOpen(true)} showSearch={isAdmin} />
+        {children}
+      </main>
+
+      {isAdmin && <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />}
+    </div>
+  );
 };
 
 export default DashboardLayout;

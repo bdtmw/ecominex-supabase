@@ -1,23 +1,19 @@
-import AdminProductTable from '@/components/AllProduct/ProductTable'
-import LandingLayout from '@/components/Layouts/LandingLayout'
-import React from 'react'
-import DashboardLayout from '@/components/myAccount/layout';
-import DashboardHeader from '@/components/Layouts/DashboardHeader';
-import UserMachineAssignment from '@/components/Assign/UserMachineAssign';
-import UserMachineList from '@/components/Assign/MachineCatalog';
+import React from "react";
+import DashboardLayout from "@/components/Dashboard/DasboardLayout/DasboardLayout";
+import DashboardHeader from "@/components/Dashboard/DashboardHeader/DashboardHeader";
+import ProtectedRoutes from "@/components/config/protectedRoute/ProtectedRoutes";
+import UserMachineAssignment from "@/components/Assign/UserMachineAssign";
+import UserMachineList from "@/components/Assign/MachineCatalog";
 
-function page() {
+function Page() {
   return (
-    <div>
-      {/* <LandingLayout> */}
-        <DashboardLayout>
-        <DashboardHeader />     
-        <UserMachineAssignment/>
-        <UserMachineList/>
-        </DashboardLayout>
-      {/* </LandingLayout> */}
-    </div>
-  )
+    <ProtectedRoutes>
+      <DashboardLayout>
+        <DashboardHeader title="Assign Machines" desc="Give a mining machine to a user and review current assignments." />
+        <UserMachineAssignment />
+        <UserMachineList />
+      </DashboardLayout>
+    </ProtectedRoutes>
+  );
 }
-
-export default page;
+export default Page;

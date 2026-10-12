@@ -1,135 +1,182 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Menu } from "lucide-react";
+import { useEffect } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
-import { usePathname } from "next/navigation";
-import { useSelector } from "react-redux";
-import { RootState } from "@/lib/store/store";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronLeft, ChevronRight, LogOut, Search, X } from "lucide-react";
+import { isActive, type NavGroup, type NavItem } from "../nav/adminNav";
+import type { AdminCounts } from "@/hooks/useAdminCounts";
 
-export default function Sidebar({ menu, onLogout }: any) {
+interface SidebarProps {
+  groups: NavGroup[];
+  counts: AdminCounts;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+  mobileOpen: boolean;
+  onMobileClose: () => void;
+  onOpenSearch?: () => void;
+  onLogout: () => void;
+  user?: { firstName?: string; lastName?: string; role?: string } | null;
+}
+
+const fmt = (n: number) => (n > 99 ? "99+" : String(n));
+
+function NavLink({ item, active, collapsed, count, onNavigate }: {
+  item: NavItem; active: boolean; collapsed: boolean; count: number; onNavigate: () => void;
+}) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      onClick={onNavigate}
+      aria-current={active ? "page" : undefined}
+      title={collapsed ? item.label : undefined}
+      className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[14.5px] font-medium outline-none transition
+        focus-visible:ring-2 focus-visible:ring-green-500
+        ${active ? "bg-green-500/10 text-green-400" : "text-gray-300 hover:bg-white/5 hover:text-white"}
+        ${collapsed ? "justify-center" : ""}`}
+    >
+      {active && <span className="absolute -left-4 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r bg-green-500" aria-hidden />}
+      <span className="relative">
+        <Icon className="h-5 w-5 shrink-0" aria-hidden />
+        {collapsed && count > 0 && (
+          <span className="absolute -right-1.5 -top-1.5 h-3 w-3 rounded-full bg-red-500 ring-2 ring-[#1b1b1b]" aria-label={`${count} waiting`} />
+        )}
+      </span>
+      {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
+      {!collapsed && count > 0 && (
+        <span className="rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-semibold leading-none text-white" aria-label={`${count} waiting`}>
+          {fmt(count)}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+export default function Sidebar({
+  groups, counts, collapsed, onToggleCollapsed, mobileOpen, onMobileClose, onOpenSearch, onLogout, user,
+}: SidebarProps) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
-  const [openMobile, setOpenMobile] = useState(false);
-  const { user } = useSelector((state: RootState) => state.auth);
 
-  // Shared sidebar content extracted to reuse for desktop + mobile
-  const sidebarContent = (
-    <div className="bg-[#1b1b1b] w-full h-full px-4.5 py-6.5 flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-10">
-        <Link href="/" className="flex items-center space-x-3 px-2 pt-2" onClick={() => setOpenMobile(false)}>
-          {!collapsed && <span className="text-[31px] font-bold">Ecomine</span>}
-          <div className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-green-500">
-            <span className="text-xl font-bold">X</span>
-          </div>
+  // Esc closes the mobile drawer
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onMobileClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileOpen, onMobileClose]);
+
+  const render = (isCollapsed: boolean) => (
+    <div className="flex h-full w-full flex-col bg-[#1b1b1b] px-4 py-5">
+      <div className="mb-4 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-3 px-1" onClick={onMobileClose} aria-label="Ecomine home">
+          {!isCollapsed && <span className="text-[28px] font-bold leading-none">Ecomine</span>}
+          <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-green-500 text-xl font-bold">X</span>
         </Link>
-
-        {/* Collapse button (desktop only) */}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="hidden lg:flex p-1 bg-[#323232] rounded-full -right-7 top-20 absolute transition"
-        >
-          {collapsed ? <ChevronRight className="text-white" /> : <ChevronLeft className="text-white" />}
-        </button>
       </div>
 
-      {/* Menu */}
-      <nav className="space-y-1.5 flex-1">
-        {menu.map((item: any, idx: number) => {
-          const Icon = item.icon;
-          const active = pathname === item.link;
+      {onOpenSearch && (
+        <button
+          onClick={() => { onOpenSearch(); onMobileClose(); }}
+          title={isCollapsed ? "Search (Ctrl K)" : undefined}
+          className={`mb-3 flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-400 outline-none transition hover:border-green-500/40 hover:text-white focus-visible:ring-2 focus-visible:ring-green-500 ${isCollapsed ? "justify-center" : ""}`}
+        >
+          <Search className="h-4 w-4 shrink-0" aria-hidden />
+          {!isCollapsed && (<><span className="flex-1 text-left">Jump to…</span>
+            <kbd className="rounded border border-white/10 px-1.5 text-[10px] text-gray-400">Ctrl K</kbd></>)}
+        </button>
+      )}
 
-          return (
-            <Link
-              key={idx}
-              href={item.link}
-              onClick={() => {
-                if (item.label === "Logout") onLogout();
-                setOpenMobile(false);
-              }}
-              className={`flex items-center gap-3 py-3 font-[500] px-2 relative transition ${
-                active ? "text-green-500" : "text-gray-300 hover:text-green-500"
-              }`}
-            >
-              <div
-                className={`border-l-3 rounded-r-xl absolute -left-5 ${
-                  active ? "bg-green-500 text-green-500" : "bg-transparent text-transparent"
-                } border-green-600/20 h-full w-[7px]`}
-              >
-                .
-              </div>
-              <Icon className="h-5 w-5 shrink-0" />
-              {!collapsed && <span className="font-medium text-[15.8px]">{item.label}</span>}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Footer */}
-      <div className="mt-auto">
-        {!collapsed ? (
-          <div className="flex items-center gap-3 border-t border-white/10 pt-4">
-            <Image src="/userdash.jpg" width={40} height={40} alt="image" className="rounded-full" />
-            <div>
-              <p className="text-sm font-semibold">
-                {user?.firstName} {user?.lastName}
-              </p>
-              <p className="text-xs text-gray-400">{user?.role}</p>
+      <nav aria-label="Admin navigation" className="-mr-2 min-h-0 flex-1 space-y-3.5 overflow-y-auto pr-2">
+        {groups.map((group, gi) => (
+          <div key={group.title || gi}>
+            {group.title && !isCollapsed && (
+              <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-500">{group.title}</p>
+            )}
+            {group.title && isCollapsed && gi > 0 && <div className="mx-2 mb-2 border-t border-white/10" />}
+            <div className="space-y-0.5">
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  active={isActive(pathname, item.href)}
+                  collapsed={isCollapsed}
+                  count={item.badge ? counts[item.badge] : 0}
+                  onNavigate={onMobileClose}
+                />
+              ))}
             </div>
           </div>
-        ) : (
-          <div className="flex justify-center pt-4 border-t border-white/10">
-            <Image src="/userdash.jpg" width={40} height={40} alt="image" className="rounded-full" />
-          </div>
-        )}
+        ))}
+      </nav>
+
+      <div className="mt-3 border-t border-white/10 pt-3">
+        <div className={`flex items-center gap-3 ${isCollapsed ? "flex-col" : ""}`}>
+          <Image src="/userdash.jpg" width={36} height={36} alt="" className="rounded-full" />
+          {!isCollapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">{user?.firstName} {user?.lastName}</p>
+              <p className="text-xs capitalize text-gray-400">{user?.role}</p>
+            </div>
+          )}
+          <button
+            onClick={() => { onMobileClose(); onLogout(); }}
+            title="Log out"
+            aria-label="Log out"
+            className="rounded-lg p-2 text-gray-300 outline-none transition hover:bg-red-500/10 hover:text-red-400 focus-visible:ring-2 focus-visible:ring-red-500"
+          >
+            <LogOut className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
       </div>
     </div>
   );
 
   return (
-    <div className="bg-[#1b1b1b]">
-      {/* Desktop / Large screens */}
+    <>
+      {/* Desktop */}
       <motion.aside
-        animate={{ width: collapsed ? 80 : 250 }}
-        className="hidden md:block text-white h-screen bg-[#1b1b1b] overflow-hidden relative"
+        animate={{ width: collapsed ? 84 : 262 }}
+        initial={false}
+        className="relative hidden h-screen shrink-0 bg-[#1b1b1b] text-white md:block"
       >
-        <div className="fixed h-screen" style={{ width: collapsed ? 80 : 250 }}>
-          {sidebarContent}
-        </div>
+        <div className="fixed h-screen" style={{ width: collapsed ? 84 : 262 }}>{render(collapsed)}</div>
+        <button
+          onClick={onToggleCollapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="fixed top-20 z-50 rounded-full bg-[#323232] p-1 text-white shadow transition hover:bg-green-600"
+          style={{ left: (collapsed ? 84 : 262) - 12 }}
+        >
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </button>
       </motion.aside>
 
-      {/* Mobile toggle button (shows when md:hidden) — place this in your layout header */}
-      <button
-        className="md:hidden fixed top-9  z-[60]  -left-2 p-2 rounded-md"
-        onClick={() => setOpenMobile(true)}
-      >
-        <Menu className="text-white w-5 h-5" />
-      </button>
-
-      {/* Mobile Sidebar Overlay */}
+      {/* Mobile drawer */}
       <AnimatePresence>
-        {openMobile && (
-          <motion.aside
-            initial={{ x: "-100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
-            transition={{ type: "tween", duration: 0.3 }}
-            className="md:hidden fixed inset-y-0 left-0 z-[70] w-72 max-w-full text-white  shadow-xl"
-          >
-            {/* Close area */}
-            <button
-              className="absolute top-4 right-4 text-sm text-gray-300"
-              onClick={() => setOpenMobile(false)}
+        {mobileOpen && (
+          <>
+            <motion.button
+              aria-label="Close menu"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[65] bg-black/60 md:hidden"
+              onClick={onMobileClose}
+            />
+            <motion.aside
+              role="dialog" aria-modal="true" aria-label="Menu"
+              initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
+              transition={{ type: "tween", duration: 0.25 }}
+              className="fixed inset-y-0 left-0 z-[70] w-72 max-w-[85vw] text-white shadow-xl md:hidden"
             >
-              ✕
-            </button>
-            {sidebarContent}
-          </motion.aside>
+              <button onClick={onMobileClose} aria-label="Close menu" className="absolute right-3 top-3 z-10 rounded-full p-1.5 text-gray-300 hover:bg-white/10">
+                <X className="h-5 w-5" />
+              </button>
+              {render(false)}
+            </motion.aside>
+          </>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }
