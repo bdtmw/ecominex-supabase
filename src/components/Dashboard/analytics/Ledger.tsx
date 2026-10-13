@@ -142,11 +142,11 @@ export default function Ledger() {
       </dl>
 
       <div className="relative overflow-x-auto rounded-2xl bg-[#1e1e1e]" style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
-        <table className="w-full min-w-[620px] text-left text-sm">
+        <table className="w-full min-w-[700px] text-left text-sm">
           <thead>
             <tr className="border-b text-xs" style={{ borderColor: VIZ.grid, color: VIZ.muted }}>
               <th className="px-4 py-3 font-medium">When</th><th className="px-4 py-3 font-medium">User</th><th className="px-4 py-3 font-medium">Activity</th>
-              <th className="px-4 py-3 text-right font-medium">Amount</th>
+              <th className="px-4 py-3 text-right font-medium">Amount</th><th className="px-4 py-3 text-right font-medium" title="The user's balance right after this entry">Balance</th>
             </tr>
           </thead>
           <tbody>
@@ -173,9 +173,10 @@ export default function Ledger() {
                   </span>
                   {(r.status === "pending" || r.status === "rejected") && <span className="mt-1 inline-block"><StatusBadge status={r.status} /></span>}
                 </td>
+                <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums" style={{ color: VIZ.textSecondary }}>{r.balanceAfter == null || r.status === "rejected" ? "—" : money2(r.balanceAfter)}</td>
               </tr>
             ))}
-            {data && rows.length === 0 && <tr><td colSpan={4} className="px-4 py-14 text-center" style={{ color: VIZ.muted }}>No ledger entries match these filters.</td></tr>}
+            {data && rows.length === 0 && <tr><td colSpan={5} className="px-4 py-14 text-center" style={{ color: VIZ.muted }}>No ledger entries match these filters.</td></tr>}
           </tbody>
         </table>
       </div>
