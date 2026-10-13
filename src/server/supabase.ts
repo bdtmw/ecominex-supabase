@@ -4,7 +4,9 @@ import { env } from "./env";
 let adminClient: SupabaseClient | null = null;
 let anonClient: SupabaseClient | null = null;
 
-const opts = { auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false } };
+// Next.js patches fetch and can serve a repeated identical GET from its data cache; money state must never be stale.
+const noStore: typeof fetch = (input, init) => fetch(input, { ...init, cache: "no-store" });
+const opts = { auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false }, global: { fetch: noStore } };
 
 /** Service-role client: bypasses RLS. Server-only; every caller must authorise first. */
 export function admin(): SupabaseClient {

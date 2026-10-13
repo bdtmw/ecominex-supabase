@@ -46,7 +46,7 @@ export default function AdminOverview() {
 
   const pending = att?.pendingWithdrawals;
   const oldestHours = pending?.oldestAt ? (Date.now() - new Date(pending.oldestAt).getTime()) / 3600000 : 0;
-  const attentionCount = (pending?.count ? 1 : 0) + (snap?.unreadContacts ? 1 : 0) + (att?.dormantWithFunds ? 1 : 0);
+  const attentionCount = (pending?.count ? 1 : 0) + (snap?.unreadContacts ? 1 : 0) + (att?.dormantWithFunds ? 1 : 0) + (att?.depositsNeedingReview ? 1 : 0);
 
   return (
     <div className="space-y-5">
@@ -90,6 +90,13 @@ export default function AdminOverview() {
                 <p className="flex items-center gap-2 text-sm font-medium text-white"><MessageSquare className="h-4 w-4" style={{ color: VIZ.textSecondary }} aria-hidden />{snap.unreadContacts} unread message{snap.unreadContacts === 1 ? "" : "s"}</p>
                 <p className="mt-1 text-xs" style={{ color: VIZ.muted }}>Contact-form enquiries nobody has opened yet.</p>
                 <Link href="/Dashboard/contactUs" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-green-400 hover:underline">Open inbox <ArrowRight className="h-4 w-4" aria-hidden /></Link>
+              </div>
+            )}
+            {att?.depositsNeedingReview > 0 && (
+              <div className="rounded-xl border p-4" style={{ borderColor: VIZ.warning }}>
+                <p className="flex items-center gap-2 text-sm font-medium text-white"><AlertTriangle className="h-4 w-4" style={{ color: VIZ.warning }} aria-hidden />{att.depositsNeedingReview} deposit{att.depositsNeedingReview === 1 ? "" : "s"} need review</p>
+                <p className="mt-1 text-xs" style={{ color: VIZ.muted }}>Partial payments, price mismatches or refunds. Nothing was credited automatically.</p>
+                <Link href="/Dashboard/Deposits?tab=review" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-green-400 hover:underline">Review deposits <ArrowRight className="h-4 w-4" aria-hidden /></Link>
               </div>
             )}
             {att?.dormantWithFunds > 0 && (

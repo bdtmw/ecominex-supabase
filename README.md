@@ -106,3 +106,19 @@ password reset, machine assignment and withdrawal notifications.
   Supabase project in CI — run through signup, login, deposit, purchase and withdrawal once on a staging project.
 * Login tokens still live in `localStorage` (as before). A same-origin cookie session is now possible and recommended as a follow-up.
 * In-memory rate limiting is per server instance; use an external store (e.g. Upstash) for strict limits.
+
+## Crypto deposits (NOWPayments)
+
+Flow: wallet page -> `POST /api/v1/deposit/nowpayments` creates an invoice -> user pays on NOWPayments -> NOWPayments calls
+`{APP_URL}/api/v1/nowpayments/ipn` (signed with HMAC-SHA512) -> the deposit is credited **once** (database-enforced) ->
+the user lands on `/deposit/success` which polls `/api/v1/deposit/status/{id}` until it shows as credited.
+
+Setup:
+1. Run `supabase/migrations/0005_nowpayments_hardening.sql` in the SQL editor.
+2. Set `NOWPAYMENTS_API_KEY`, `NOWPAYMENTS_IPN_SECRET` and `APP_URL` in Vercel and redeploy.
+3. In the NOWPayments dashboard (Store settings) set the IPN secret to the same value. The callback URL is sent with every invoice.
+4. Try it with the sandbox first (`NOWPAYMENTS_BASE_URL=https://api-sandbox.nowpayments.io/v1` plus the sandbox API key).
+
+Safety rules: only `finished` credits, and only the invoiced amount; a price mismatch, partial payment or refund is held in
+**Dashboard -> Deposits -> Needs review** and never credited automatically. Limits: `MIN_DEPOSIT_USD`, `MAX_DEPOSIT_USD`,
+`NOWPAYMENTS_ALLOWED_CURRENCIES`. Tests: `npm test` (SQL), `npm run test:e2e:np` (simulated provider, needs `npm run build`).

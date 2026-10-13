@@ -56,6 +56,40 @@ export function startFakeSupabase(db, port) {
         if (wantsObject) return r.rows.length === 1 ? send(200, r.rows[0]) : send(406, { code: "PGRST116", message: "JSON object requested, multiple (or no) rows returned" });
         return send(200, r.rows, { "Content-Range": `0-${Math.max(0, r.rows.length - 1)}/${r.rows.length}` });
       }
+      // ---- table writes (insert / update by eq. filters); returns the rows when asked, like PostgREST
+      if (t && (req.method === "POST" || req.method === "PATCH")) {
+        const table = t[1];
+        const body = raw ? JSON.parse(raw) : {};
+        const wantsRows = (req.headers.prefer || "").includes("return=representation");
+        const wantsObject = (req.headers.accept || "").includes("vnd.pgrst.object");
+        const sendRows = (rows) => !wantsRows ? send(req.method === "POST" ? 201 : 204)
+          : wantsObject ? (rows.length === 1 ? send(req.method === "POST" ? 201 : 200, rows[0]) : send(406, { code: "PGRST116", message: "JSON object requested, multiple (or no) rows returned" }))
+          : send(req.method === "POST" ? 201 : 200, rows);
+        try {
+          if (req.method === "POST") {
+            const out = [];
+            for (const row of Array.isArray(body) ? body : [body]) {
+              const cols = Object.keys(row);
+              if (!cols.every((c) => ident.test(c))) return send(400, { message: "bad column" });
+              const r = await db.query(`insert into public.${table} (${cols.join(",")}) values (${cols.map((_, i) => `$${i + 1}`).join(",")}) returning *`, cols.map((c) => toParam(row[c])));
+              out.push(...r.rows);
+            }
+            return sendRows(out);
+          }
+          const cols = Object.keys(body), where = [], params = cols.map((c) => toParam(body[c]));
+          if (!cols.every((c) => ident.test(c))) return send(400, { message: "bad column" });
+          for (const [k, v] of url.searchParams) {
+            const eq = /^eq\.(.*)$/.exec(v);
+            if (!eq || !ident.test(k)) continue;
+            params.push(eq[1]); where.push(`${k}::text = $${params.length}`);
+          }
+          if (!where.length) return send(400, { message: "update without filter" });
+          const r = await db.query(`update public.${table} set ${cols.map((c, i) => `${c} = $${i + 1}`).join(", ")} where ${where.join(" and ")} returning *`, params);
+          return sendRows(r.rows);
+        } catch (e) {
+          return send(400, { code: e.code, message: e.message, details: e.detail ?? null, hint: null });
+        }
+      }
       return send(404, { message: `fake supabase: unsupported ${req.method} ${url.pathname}` });
     } catch (e) {
       return send(500, { message: String(e.message || e) });

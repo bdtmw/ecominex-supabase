@@ -40,13 +40,16 @@ export async function getAnalytics(req: NextRequest) {
   const bucket = spanDays > 92 ? "week" : "day";
 
   const db = admin();
-  const [kpis, series] = await Promise.all([
+  const [kpis, series, review] = await Promise.all([
     db.rpc("fn_admin_kpis", { p_admin: me.id, p_from: from.toISOString(), p_to: to.toISOString() }),
     db.rpc("fn_admin_timeseries", { p_admin: me.id, p_from: from.toISOString(), p_to: to.toISOString(), p_bucket: bucket }),
+    db.rpc("fn_admin_deposits", { p_admin: me.id, p_review: true, p_limit: 1, p_offset: 0 }),
   ]);
   if (kpis.error) throw kpis.error;
   if (series.error) throw series.error;
-  return json({ range, from, to, bucket: series.data.bucket, ...kpis.data, series: series.data.points });
+  if (review.error) throw review.error;
+  const attention = { ...kpis.data.attention, depositsNeedingReview: review.data.total };
+  return json({ range, from, to, bucket: series.data.bucket, ...kpis.data, attention, series: series.data.points });
 }
 
 // ------------------------------------------------------------------ users

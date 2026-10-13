@@ -247,3 +247,102 @@ describe("constraints", () => {
     assert.equal(e.code, "23514");
   });
 });
+
+describe("NOWPayments callbacks (provider retries and out-of-order delivery)", () => {
+  const mkDeposit = async (user, amount = 50, provider = "nowpayments") =>
+    (await db.query(`insert into public.deposits (user_id, amount, transaction_id, account_type, payment_provider, payment_status)
+                     values ($1,$2,'NP-x','NOWPayments',$3,'waiting') returning id`, [user, amount, provider])).rows[0].id;
+  const apply = (id, status, extra = {}) =>
+    call("fn_apply_nowpayments", id, extra.payment ?? "pay1", "inv1", status, "usdttrc20", extra.paid ?? 50, extra.amount ?? 50, JSON.stringify({ status }));
+  const credits = async (u) => (await db.query(`select count(*)::int c from public.transactions where user_id=$1 and type='ADMIN_ADD'`, [u])).rows[0].c;
+  const dep = async (id) => (await db.query(`select payment_status s, credited_at, review_note n from public.deposits where id=$1`, [id])).rows[0];
+
+  test("a late 'confirming' after 'finished' cannot cause a second credit when 'finished' is retried", async () => {
+    const u = await makeUser(db);
+    const id = await mkDeposit(u);
+    assert.equal((await apply(id, "confirming")).credited, false);
+    assert.equal((await apply(id, "finished")).credited, true);
+    await apply(id, "confirming");                       // delayed older notification arrives
+    const retry = await apply(id, "finished");           // provider retries the final one
+    assert.equal(retry.credited, false);
+    assert.equal(retry.duplicate, true);
+    assert.equal((await balanceOf(db, u)).a, 50);
+    assert.equal(await credits(u), 1);
+    assert.equal((await dep(id)).s, "finished");         // the final status never regresses
+  });
+
+  test("many repeats of 'finished', in any interleaving, still credit once", async () => {
+    const u = await makeUser(db);
+    const id = await mkDeposit(u, 120);
+    for (const s of ["waiting", "finished", "finished", "sending", "confirmed", "finished", "waiting", "finished"]) await apply(id, s, { amount: 120, paid: 120 });
+    assert.equal((await balanceOf(db, u)).a, 120);
+    assert.equal(await credits(u), 1);
+  });
+
+  test("credits the invoiced amount and links the ledger entry to the deposit", async () => {
+    const u = await makeUser(db);
+    const id = await mkDeposit(u, 75);
+    await apply(id, "finished", { amount: 75, paid: 75.4 });
+    const row = (await db.query(`select amount::float a, metadata from public.transactions where user_id=$1 and type='ADMIN_ADD'`, [u])).rows[0];
+    assert.equal(row.a, 75);
+    assert.equal(row.metadata.depositId, id);
+    assert.ok((await dep(id)).credited_at);
+  });
+
+  test("a provider price that differs from the invoice is held for review, not credited", async () => {
+    const u = await makeUser(db);
+    const id = await mkDeposit(u, 100);
+    const r = await apply(id, "finished", { amount: 1000, paid: 1000 });
+    assert.equal(r.credited, false); assert.equal(r.flagged, true);
+    assert.equal((await balanceOf(db, u)).a, 0);
+    const d = await dep(id);
+    assert.equal(d.s, "review"); assert.match(d.n, /invoice was for 100/);
+  });
+
+  test("a partial payment is flagged for an admin and not credited", async () => {
+    const u = await makeUser(db);
+    const id = await mkDeposit(u, 100);
+    const r = await apply(id, "partially_paid", { paid: 40, amount: 100 });
+    assert.equal(r.credited, false); assert.equal(r.flagged, true);
+    assert.equal((await balanceOf(db, u)).a, 0);
+    assert.match((await dep(id)).n, /Partially paid: received 40 of 100/);
+  });
+
+  test("expired and failed invoices never credit", async () => {
+    const u = await makeUser(db);
+    for (const s of ["expired", "failed"]) { const id = await mkDeposit(u); await apply(id, s); assert.equal((await dep(id)).s, s); }
+    assert.equal((await balanceOf(db, u)).a, 0);
+  });
+
+  test("a refund after crediting is flagged for review (no automatic debit) and cannot re-credit", async () => {
+    const u = await makeUser(db);
+    const id = await mkDeposit(u, 60);
+    await apply(id, "finished", { amount: 60, paid: 60 });
+    const r = await apply(id, "refunded", { amount: 60 });
+    assert.equal(r.flagged, true);
+    const d = await dep(id);
+    assert.equal(d.s, "refunded"); assert.match(d.n, /refunded this payment after it was credited/);
+    assert.equal((await balanceOf(db, u)).a, 60);
+    await apply(id, "finished", { amount: 60, paid: 60 });
+    assert.equal(await credits(u), 1);
+  });
+
+  test("a manual deposit cannot be credited through the provider callback", async () => {
+    const u = await makeUser(db);
+    const id = await mkDeposit(u, 500, "manual");
+    assert.equal((await err(apply(id, "finished", { amount: 500 }))).code, "P0002");
+    assert.equal((await balanceOf(db, u)).a, 0);
+  });
+
+  test("the database itself refuses a second credit entry for one deposit", async () => {
+    const u = await makeUser(db);
+    const id = await mkDeposit(u, 10);
+    await apply(id, "finished", { amount: 10, paid: 10 });
+    const e = await err(db.query(`insert into public.transactions (user_id, amount, type, status, metadata) values ($1, 10, 'ADMIN_ADD', 'approved', $2)`, [u, JSON.stringify({ depositId: id })]));
+    assert.equal(e.code, "23505");
+  });
+
+  test("unknown deposits are rejected", async () => {
+    assert.equal((await err(apply("00000000-0000-0000-0000-000000000000", "finished"))).code, "P0002");
+  });
+});

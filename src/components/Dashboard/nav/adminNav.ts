@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, UserPlus, Cpu, WalletCards, History, MessageSquare, Settings, BookOpen,
+  LayoutDashboard, Users, UserPlus, Cpu, WalletCards, History, Bitcoin, MessageSquare, Settings, BookOpen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -43,6 +43,7 @@ export const ADMIN_NAV: NavGroup[] = [
     title: "Finance",
     items: [
       { label: "Ledger", href: "/Dashboard/Ledger", icon: BookOpen, description: "Every money movement, searchable and exportable", keywords: ["transactions", "ledger", "statement", "audit", "export", "csv", "deposits", "payments", "history", "movements"] },
+      { label: "Deposits", href: "/Dashboard/Deposits", icon: Bitcoin, description: "Crypto and manual deposits, payments needing review", keywords: ["nowpayments", "crypto", "usdt", "payment", "invoice", "proof", "review"] },
       { label: "Withdrawals", href: "/Dashboard/AllTransaction", icon: WalletCards, description: "Approve or reject pending withdrawals", keywords: ["pending", "payout", "approve", "reject", "transactions"], badge: "pendingWithdrawals" },
       { label: "Withdrawal History", href: "/Dashboard/AdminTran", icon: History, description: "All processed withdrawals and filters", keywords: ["history", "all transactions", "report", "approved", "rejected"] },
     ],

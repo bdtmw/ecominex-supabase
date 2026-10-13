@@ -121,6 +121,8 @@ export const toDeposit = (d: any, user?: any) => ({
   nowPaymentsInvoiceId: d.now_payments_invoice_id,
   nowPaymentsPaymentId: d.now_payments_payment_id,
   invoiceUrl: d.invoice_url,
+  creditedAt: d.credited_at ?? null,
+  reviewNote: d.review_note ?? null,
   createdAt: d.created_at,
   updatedAt: d.updated_at,
 });
