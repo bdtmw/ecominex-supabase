@@ -11,7 +11,8 @@ const TABS = [
   { id: "all", label: "All", count: "all" },
   { id: "review", label: "Needs review", count: "review" },
   { id: "progress", label: "In progress", count: "inProgress" },
-  { id: "manual", label: "Manual", count: "manual" },
+  { id: "admin", label: "Admin credits", count: "admin" },
+  { id: "manual", label: "Manual requests", count: "manual" },
   { id: "credited", label: "Credited", count: "credited" },
 ] as const;
 
@@ -19,6 +20,7 @@ const tabQuery: Record<string, Record<string, string>> = {
   all: {},
   review: { review: "1" },
   progress: { provider: "nowpayments", status: "creating,waiting,confirming,confirmed,sending" },
+  admin: { provider: "admin" },
   manual: { provider: "manual" },
   credited: { status: "finished,approved" },
 };
@@ -78,7 +80,7 @@ export default function Deposits() {
         <label className="relative ml-auto w-full sm:w-72">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden />
           <span className="sr-only">Search deposits</span>
-          <input value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Name, email or payment id"
+          <input value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Name, email, note or payment id"
             className="w-full rounded-xl border border-white/10 bg-[#1e1e1e] py-2 pl-9 pr-3 text-sm text-white outline-none focus:border-green-400" />
         </label>
       </div>
@@ -108,10 +110,11 @@ export default function Deposits() {
                 <tr key={r.id} className="border-t border-white/5 align-top" style={review ? { background: "rgba(242,169,0,0.06)" } : undefined}>
                   <td className="whitespace-nowrap px-4 py-3 text-gray-300">{new Date(r.createdAt).toISOString().replace("T", " ").slice(0, 16)}</td>
                   <td className="px-4 py-3"><button onClick={() => url.set({ user: r.userId })} title="Show only this user's deposits" className="text-left text-white hover:text-green-400">{r.userName || r.userEmail}</button><div className="text-xs" style={{ color: VIZ.muted }}>{r.userEmail}</div></td>
-                  <td className="px-4 py-3 text-gray-300">{r.provider === "nowpayments" ? `Crypto${r.payCurrency ? ` · ${String(r.payCurrency).toUpperCase()}` : ""}` : "Manual"}</td>
+                  <td className="px-4 py-3 text-gray-300">{r.provider === "nowpayments" ? `Crypto${r.payCurrency ? ` · ${String(r.payCurrency).toUpperCase()}` : ""}` : r.provider === "admin" ? "Admin credit" : "Manual request"}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-white">{money2(r.amount)}{r.actuallyPaid != null && Number(r.actuallyPaid) !== Number(r.amount) && <div className="text-xs" style={{ color: VIZ.muted }}>paid {r.actuallyPaid}</div>}</td>
                   <td className="px-4 py-3"><Status status={r.status} review={review} /></td>
                   <td className="px-4 py-3 text-xs" style={{ color: VIZ.textSecondary }}>
+                    {r.description && <p className="mb-1">{r.description}</p>}
                     {r.reviewNote && <p className="mb-1" style={{ color: VIZ.warning }}>{r.reviewNote}</p>}
                     {r.paymentId && <p>Payment {r.paymentId}</p>}
                     {r.reference && <p>Ref {r.reference}</p>}

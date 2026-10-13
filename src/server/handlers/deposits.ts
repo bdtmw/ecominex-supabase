@@ -164,14 +164,14 @@ export async function getDeposits(req: NextRequest) {
   return json({ success: true, count: data.length, data: data.map((d) => toDeposit(d)) });
 }
 
-const DEPOSIT_STATUSES = ["creating", "waiting", "confirming", "confirmed", "sending", "partially_paid", "finished", "failed", "refunded", "expired", "review", "pending"];
+const DEPOSIT_STATUSES = ["creating", "waiting", "confirming", "confirmed", "sending", "partially_paid", "finished", "failed", "refunded", "expired", "review", "pending", "approved"];
 
 /** Admin list of every deposit (manual proofs and NOWPayments) with filters, paging and tab counts. */
 export async function adminListDeposits(req: NextRequest) {
   const me = await requireAdmin(req);
   const sp = req.nextUrl.searchParams;
   const provider = sp.get("provider");
-  if (provider && !["manual", "nowpayments"].includes(provider)) throw new HttpError(400, "Invalid provider");
+  if (provider && !["manual", "nowpayments", "admin"].includes(provider)) throw new HttpError(400, "Invalid provider");
   const statuses = (sp.get("status") || "").split(",").map((x) => x.trim()).filter(Boolean);
   if (statuses.some((x) => !DEPOSIT_STATUSES.includes(x))) throw new HttpError(400, "Invalid status");
   const { page, limit, from } = pageParams(req, 25, 100);

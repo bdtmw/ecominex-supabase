@@ -159,12 +159,13 @@ const mk = async (token) => {
   check("admin Deposits page lists flagged deposits with reasons", (await page.locator("tbody tr").count()) === 2 && /\$200\.00/.test(rowsTxt) && /\$300\.00/.test(rowsTxt), rowsTxt);
   await page.goto(`${BASE}/Dashboard/Deposits/`);
   await page.waitForSelector("tbody tr button", { timeout: 15000 });
-  const total = (await db.query(`select count(*)::int c from public.deposits`)).rows[0].c;
+  const listed = (where, p = []) => db.query(`select ((select count(*) from public.deposits d where ${where.replace(/\bX\b/g, 'd.user_id')}) + (select count(*) from public.transactions t where t.type = 'ADMIN_ADD' and not (t.metadata ? 'depositId') and ${where.replace(/\bX\b/g, 't.user_id')}))::int c`, p).then((x) => x.rows[0].c);
+  const total = await listed("true");
   check("admin Deposits: footer shows 'Showing 1–N of N' and a page-size picker", await seen(page.getByText(new RegExp(`Showing 1–${Math.min(50, total)} of ${total} deposits`))) && (await page.locator('select[aria-label="Per page"]').count()) === 1, String(total));
   await page.locator("tbody tr button").first().click();
   await page.waitForURL(/user=/);
   const uid = new URL(page.url()).searchParams.get("user");
-  const mine = (await db.query(`select count(*)::int c from public.deposits where user_id=$1`, [uid])).rows[0].c;
+  const mine = await listed("X = $1", [uid]);
   await page.getByText(/^Only /).waitFor({ timeout: 10000 });
   await page.waitForFunction((n) => document.querySelectorAll("tbody tr").length === n, mine, { timeout: 10000 }).catch(() => {});
   check("admin Deposits: clicking a user shows only that user's deposits with a removable chip", (await page.locator("tbody tr").count()) === mine && (await page.getByRole("button", { name: "Show all users" }).count()) === 1, `${mine}`);
