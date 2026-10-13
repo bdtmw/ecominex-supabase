@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, Clock, ExternalLink, Search, XCircle } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, Clock, ExternalLink, Search, X, XCircle } from "lucide-react";
 import { VIZ, money2, num } from "./viz";
 import { useAdminFetch } from "./useAdminFetch";
 import { useUrlState } from "./useUrlState";
@@ -34,6 +35,8 @@ export default function Deposits() {
   const tab = url.get("tab") || "all";
   const page = Math.max(1, parseInt(url.get("page") || "1", 10) || 1);
   const urlSearch = url.get("search");
+  const user = url.get("user");
+  const pageSize = [25, 50, 100].includes(Number(url.get("size"))) ? Number(url.get("size")) : 50;
   const [searchText, setSearchText] = useState(urlSearch);
   useEffect(() => {
     if (searchText === urlSearch) return;
@@ -42,11 +45,15 @@ export default function Deposits() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchText]);
 
-  const p = new URLSearchParams({ ...(tabQuery[tab] || {}), page: String(page), limit: "25" });
+  const p = new URLSearchParams({ ...(tabQuery[tab] || {}), page: String(page), limit: String(pageSize) });
+  if (user) p.set("user", user);
   if (urlSearch) p.set("search", urlSearch);
   const { data, loading, error } = useAdminFetch<any>(`/api/v1/admin/deposits?${p}`);
   const rows: any[] = data?.rows || [];
   const counts = data?.counts || {};
+  const who = user ? (rows[0]?.userName || rows[0]?.userEmail || "this user") : "";
+  const firstShown = data && data.total ? (page - 1) * pageSize + 1 : 0;
+  const lastShown = data ? Math.min(data.total, page * pageSize) : 0;
 
   return (
     <div className="space-y-4">
@@ -61,6 +68,13 @@ export default function Deposits() {
             </button>
           ))}
         </div>
+        {user && (
+          <span className="inline-flex items-center gap-2 rounded-full border border-green-500/40 bg-green-500/10 px-3 py-1.5 text-sm text-green-300">
+            Only {who}
+            <Link href={`/Dashboard/AllUser/${user}`} className="underline underline-offset-2">profile</Link>
+            <button aria-label="Show all users" onClick={() => url.set({ user: "" })}><X className="h-4 w-4" /></button>
+          </span>
+        )}
         <label className="relative ml-auto w-full sm:w-72">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden />
           <span className="sr-only">Search deposits</span>
@@ -68,6 +82,14 @@ export default function Deposits() {
             className="w-full rounded-xl border border-white/10 bg-[#1e1e1e] py-2 pl-9 pr-3 text-sm text-white outline-none focus:border-green-400" />
         </label>
       </div>
+
+      {user && data?.sums && (
+        <dl className="flex flex-wrap gap-x-8 gap-y-2 rounded-2xl bg-[#1e1e1e] px-4 py-3">
+          <div><dt className="text-xs" style={{ color: VIZ.muted }}>Credited to {who}</dt><dd className="text-lg font-semibold tabular-nums" style={{ color: VIZ.good }}>{money2(data.sums.credited)}</dd></div>
+          <div><dt className="text-xs" style={{ color: VIZ.muted }}>Total requested</dt><dd className="text-lg font-semibold tabular-nums text-white">{money2(data.sums.requested)}</dd></div>
+          <div><dt className="text-xs" style={{ color: VIZ.muted }}>Deposits in view</dt><dd className="text-lg font-semibold tabular-nums text-white">{num(data.total)}</dd></div>
+        </dl>
+      )}
 
       <div className="relative overflow-x-auto rounded-2xl bg-[#1e1e1e]" style={{ opacity: loading ? 0.6 : 1 }}>
         <table className="w-full min-w-[760px] text-left text-sm">
@@ -85,7 +107,7 @@ export default function Deposits() {
               return (
                 <tr key={r.id} className="border-t border-white/5 align-top" style={review ? { background: "rgba(242,169,0,0.06)" } : undefined}>
                   <td className="whitespace-nowrap px-4 py-3 text-gray-300">{new Date(r.createdAt).toISOString().replace("T", " ").slice(0, 16)}</td>
-                  <td className="px-4 py-3"><div className="text-white">{r.userName || "—"}</div><div className="text-xs" style={{ color: VIZ.muted }}>{r.userEmail}</div></td>
+                  <td className="px-4 py-3"><button onClick={() => url.set({ user: r.userId })} title="Show only this user's deposits" className="text-left text-white hover:text-green-400">{r.userName || r.userEmail}</button><div className="text-xs" style={{ color: VIZ.muted }}>{r.userEmail}</div></td>
                   <td className="px-4 py-3 text-gray-300">{r.provider === "nowpayments" ? `Crypto${r.payCurrency ? ` · ${String(r.payCurrency).toUpperCase()}` : ""}` : "Manual"}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-white">{money2(r.amount)}{r.actuallyPaid != null && Number(r.actuallyPaid) !== Number(r.amount) && <div className="text-xs" style={{ color: VIZ.muted }}>paid {r.actuallyPaid}</div>}</td>
                   <td className="px-4 py-3"><Status status={r.status} review={review} /></td>
@@ -105,12 +127,22 @@ export default function Deposits() {
         </table>
       </div>
 
-      {data && data.totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm" style={{ color: VIZ.textSecondary }}>
-          <span>{num(data.total)} deposits · page {page} of {data.totalPages}</span>
-          <div className="flex gap-2">
-            <button disabled={page <= 1} onClick={() => url.set({ page: String(page - 1) }, { resetPage: false })} className="rounded-lg border border-white/10 p-1.5 disabled:opacity-40" aria-label="Previous page"><ChevronLeft className="h-4 w-4" /></button>
-            <button disabled={page >= data.totalPages} onClick={() => url.set({ page: String(page + 1) }, { resetPage: false })} className="rounded-lg border border-white/10 p-1.5 disabled:opacity-40" aria-label="Next page"><ChevronRight className="h-4 w-4" /></button>
+      {data && (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm" style={{ color: VIZ.textSecondary }}>
+          <span>{data.total ? `Showing ${num(firstShown)}–${num(lastShown)} of ${num(data.total)} deposits` : "0 deposits"}</span>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-xs">Per page
+              <select aria-label="Per page" value={pageSize} onChange={(e) => url.set({ size: e.target.value })} className="rounded-md border border-white/10 bg-[#1e1e1e] px-2 py-1 text-sm text-white">
+                {[25, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+            {data.totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs">Page {page} of {data.totalPages}</span>
+                <button disabled={page <= 1} onClick={() => url.set({ page: String(page - 1) }, { resetPage: false })} className="rounded-lg border border-white/10 p-1.5 disabled:opacity-40" aria-label="Previous page"><ChevronLeft className="h-4 w-4" /></button>
+                <button disabled={page >= data.totalPages} onClick={() => url.set({ page: String(page + 1) }, { resetPage: false })} className="rounded-lg border border-white/10 p-1.5 disabled:opacity-40" aria-label="Next page"><ChevronRight className="h-4 w-4" /></button>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -48,3 +48,14 @@ test("tab counts ignore the filter; filters narrow the list", async () => {
   const page = await call("fn_admin_deposits", admin, null, null, false, null, 2, 2);
   assert.equal(page.rows.length, 2); assert.equal(page.total, 4);
 });
+
+test("filtering by user scopes the list, the tab counts and the amounts", async () => {
+  const r = await call("fn_admin_deposits", admin, null, null, false, null, 25, 0, bob);
+  assert.equal(r.total, 2);
+  assert.ok(r.rows.every((x) => x.userId === bob));
+  assert.equal(r.counts.all, 2);
+  assert.equal(r.sums.requested, 580);
+  assert.equal(r.sums.credited, 0);
+  const a = await call("fn_admin_deposits", admin, null, null, false, null, 25, 0, ann);
+  assert.equal(a.sums.credited, 100);
+});

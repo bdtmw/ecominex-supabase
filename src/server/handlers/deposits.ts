@@ -175,8 +175,11 @@ export async function adminListDeposits(req: NextRequest) {
   const statuses = (sp.get("status") || "").split(",").map((x) => x.trim()).filter(Boolean);
   if (statuses.some((x) => !DEPOSIT_STATUSES.includes(x))) throw new HttpError(400, "Invalid status");
   const { page, limit, from } = pageParams(req, 25, 100);
+  const user = sp.get("user");
+  if (user && !isUuid(user)) throw new HttpError(400, "Invalid user");
 
   const { data, error } = await admin().rpc("fn_admin_deposits", {
+    p_user: user || null,
     p_admin: me.id, p_provider: provider || null, p_statuses: statuses.length ? statuses : null,
     p_review: sp.get("review") === "1", p_search: (sp.get("search") || "").slice(0, 100) || null, p_limit: limit, p_offset: from,
   });
