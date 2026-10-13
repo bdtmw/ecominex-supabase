@@ -168,11 +168,19 @@ await page.waitForFunction((n) => document.querySelectorAll("tbody tr").length =
 check("ledger: category + status combine (pending withdrawals only)", (await page.locator("tbody tr").count()) === Lp.total && (await page.locator("tbody tr", { hasText: "Pending" }).count()) === Lp.total, `${Lp.total}`);
 
 const target = users[12];
+// give this user money that no entry explains, fill the running balances, and expect an honest "brought forward" row
+await db.query(`update public.balances set admin_add = admin_add + 500 where user_id = $1`, [target.id]);
+await db.query(`select public.fn_backfill_transaction_balances()`);
+const firstBefore = Number((await db.query(`select balance_before::float b from public.v_ledger where user_id=$1 order by effective_at, id limit 1`, [target.id])).rows[0]?.b ?? 0);
 await page.goto(`${BASE}/Dashboard/Ledger/?user=${target.id}&range=all`);
 await page.getByText(/^Only /).waitFor();
 const Lu = await ledger(null, null, null, target.id);
-await page.waitForFunction((n) => document.querySelectorAll("tbody tr").length === n || document.body.innerText.includes("No ledger entries"), Lu.total, { timeout: 10000 }).catch(() => {});
-check("ledger: ?user= shows only that user's entries and a removable chip", (Lu.total === 0 ? (await page.getByText("No ledger entries").count()) === 1 : (await page.locator("tbody tr").count()) === Lu.total) && (await page.getByRole("button", { name: "Show all users" }).count()) === 1, `${Lu.total}`);
+await page.waitForFunction((n) => document.querySelectorAll("tbody tr").length === n || document.body.innerText.includes("No ledger entries"), Lu.total + (firstBefore > 0.005 ? 1 : 0), { timeout: 10000 }).catch(() => {});
+check("ledger: ?user= shows only that user's entries and a removable chip", (Lu.total === 0 ? (await page.getByText("No ledger entries").count()) === 1 : (await page.locator("tbody tr").count()) === Lu.total + (firstBefore > 0.005 ? 1 : 0)) && (await page.getByRole("button", { name: "Show all users" }).count()) === 1, `${Lu.total}`);
+if (Lu.total > 0) {
+  const usd2f = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  check("ledger: single-user view ends with a 'Balance brought forward' row showing the unexplained opening money", (await page.getByText("Balance brought forward").count()) === 1 && firstBefore >= 500 && (await page.locator("tbody tr").last().innerText()).includes(usd2f.format(firstBefore)), String(firstBefore));
+}
 
 await page.goto(`${BASE}/Dashboard/Ledger/?range=all`);
 await page.waitForFunction(() => document.querySelectorAll("tbody tr").length > 1);

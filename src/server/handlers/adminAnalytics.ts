@@ -131,7 +131,20 @@ export async function getLedger(req: NextRequest) {
   const { page, limit, from } = pageParams(req, 50, 200);
   const { data, error } = await admin().rpc("fn_admin_ledger", { ...args, p_limit: limit, p_offset: from });
   if (error) throw error;
-  return json({ ...data, page, limit, totalPages: Math.max(1, Math.ceil(data.total / limit)) });
+  const totalPages = Math.max(1, Math.ceil(data.total / limit));
+
+  // A user's full history that starts with money already in the account (e.g. history that was never imported):
+  // say so on the last page instead of leaving the first balance unexplained. Only for an unfiltered single-user view.
+  let opening: { amount: number; at: string } | null = null;
+  const unfiltered = args.p_user && !args.p_from && !args.p_to && !args.p_categories && !args.p_statuses && !args.p_search && args.p_min === null && args.p_max === null;
+  if (unfiltered && page >= totalPages) {
+    const { data: first, error: e2 } = await admin().from("v_ledger").select("balance_before, effective_at")
+      .eq("user_id", args.p_user as string).order("effective_at", { ascending: true }).order("id", { ascending: true }).limit(1);
+    if (e2) throw e2;
+    const before = first?.[0]?.balance_before == null ? 0 : Number(first[0].balance_before);
+    if (before > 0.005) opening = { amount: before, at: first![0].effective_at };
+  }
+  return json({ ...data, opening, page, limit, totalPages });
 }
 
 export async function exportLedger(req: NextRequest) {

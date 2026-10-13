@@ -176,6 +176,16 @@ export default function Ledger() {
                 <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums" style={{ color: VIZ.textSecondary }}>{r.balanceAfter == null ? "—" : money2(r.balanceAfter)}</td>
               </tr>
             ))}
+            {data?.opening && (
+              <tr className="border-b align-top" style={{ borderColor: VIZ.grid, background: "rgba(255,255,255,0.02)" }}>
+                <td className="whitespace-nowrap px-4 py-3 text-xs" style={{ color: VIZ.muted }}>Before<span className="block">{new Date(data.opening.at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></td>
+                <td className="px-4 py-3" style={{ color: VIZ.textSecondary }}>{who}</td>
+                <td className="px-4 py-3"><span className="text-white">Balance brought forward</span>
+                  <span className="mt-0.5 block text-xs" style={{ color: VIZ.muted }}>Money already in the account before the first recorded entry. Earlier history was not imported, so it can't be itemised.</span></td>
+                <td className="px-4 py-3 text-right" style={{ color: VIZ.muted }}>—</td>
+                <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums" style={{ color: VIZ.textSecondary }}>{money2(data.opening.amount)}</td>
+              </tr>
+            )}
             {data && rows.length === 0 && <tr><td colSpan={5} className="px-4 py-14 text-center" style={{ color: VIZ.muted }}>No ledger entries match these filters.</td></tr>}
           </tbody>
         </table>
