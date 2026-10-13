@@ -21,7 +21,7 @@ const data = {
     { user: O.a, adminAdd: 100, miningBalance: 20, totalBalance: 150, lastUpdated: days(1) }, // total includes an unbooked 30 bonus
     { user: O.b, adminAdd: 1, miningBalance: 1, totalBalance: 2, lastUpdated: days(10) },       // older duplicate
     { user: O.b, adminAdd: 40, miningBalance: 10, totalBalance: 50, lastUpdated: days(2) },      // newer duplicate wins
-    { user: O.c, adminAdd: -30, miningBalance: 5, totalBalance: -25, lastUpdated: days(3) },     // old overdraw bug
+    { user: O.c, adminAdd: -30, miningBalance: 50, totalBalance: 20, lastUpdated: days(3) },     // old bug: paid from profit but deducted it all from adminAdd
     { user: O.orphan, adminAdd: 999, miningBalance: 0, totalBalance: 999 },                       // user does not exist
   ],
   miningmachines: [
@@ -128,17 +128,17 @@ test("users: emails lowercased, roles/flags kept, referral links resolved, auth 
   assert.equal((await db.query("select count(*)::int c from auth.users")).rows[0].c, 4);
 });
 
-test("balances: duplicates resolved, negatives clamped, legacy mainBalance folded in, discrepancies reported", async () => {
+test("balances: duplicates resolved, negative adminAdd folded into mining, legacy mainBalance folded in, discrepancies reported", async () => {
   const bal = async (email) => (await db.query(`select b.admin_add::float a, b.mining_balance::float m, b.total_balance::float t from public.balances b join public.profiles p on p.id=b.user_id where p.email=$1`, [email])).rows[0];
   assert.deepEqual(await bal("ann@test.com"), { a: 150, m: 20, t: 170 }); // 100 + legacy 50
   assert.deepEqual(await bal("bob@test.com"), { a: 40, m: 10, t: 50 });   // newer duplicate won
-  assert.deepEqual(await bal("cy@test.com"), { a: 0, m: 5, t: 5 });       // negative clamped
+  assert.deepEqual(await bal("cy@test.com"), { a: 0, m: 20, t: 20 });     // negative adminAdd folded into mining: the total (20) is preserved, no money invented
   assert.equal(await count(db, "balances"), 3);
 
   const notes = Object.fromEntries(result.discrepancies.map((d) => [d.email, d.note]));
   assert.match(notes["ann@test.com"], /legacy mainBalance 50/);
   assert.match(notes["ann@test.com"], /totalBalance \(150\)/);
-  assert.match(notes["cy@test.com"], /negative balance clamped/);
+  assert.match(notes["cy@test.com"], /folded into the mining balance/);
   assert.equal(notes["bob@test.com"], undefined);
   assert.ok(result.warnings.some((w) => /duplicate balance docs/.test(w)));
 });
