@@ -98,7 +98,7 @@ export async function exportUsers(req: NextRequest) {
 }
 
 // ------------------------------------------------------------------ ledger
-const CATEGORIES = ["deposit", "withdrawal", "purchase", "profit", "sale", "referral"];
+const CATEGORIES = ["deposit", "withdrawal", "purchase", "profit", "sale", "referral", "adjustment"];
 const STATUSES = ["pending", "approved", "rejected", "completed"];
 
 function ledgerArgs(sp: URLSearchParams, adminId: string) {

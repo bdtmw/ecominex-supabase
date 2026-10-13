@@ -7,7 +7,7 @@ import { useAdminFetch } from "@/components/Dashboard/analytics/useAdminFetch";
 
 const TYPES = [
   { id: "", label: "All activity" }, { id: "deposit", label: "Deposits" }, { id: "withdrawal", label: "Withdrawals" },
-  { id: "purchase", label: "Purchases" }, { id: "profit", label: "Mining profit" }, { id: "sale", label: "Sales" }, { id: "referral", label: "Referral bonuses" },
+  { id: "purchase", label: "Purchases" }, { id: "profit", label: "Mining profit" }, { id: "sale", label: "Sales" }, { id: "referral", label: "Referral bonuses" }, { id: "adjustment", label: "Corrections" },
 ];
 
 export default function UserLedger() {

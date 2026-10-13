@@ -16,6 +16,7 @@ const CATEGORIES = [
   { id: "profit", label: "Mining profit" },
   { id: "sale", label: "Sales" },
   { id: "referral", label: "Referral bonuses" },
+  { id: "adjustment", label: "Corrections" },
 ];
 const STATUSES = [
   { id: "", label: "Any status" }, { id: "pending", label: "Pending" }, { id: "approved,completed", label: "Completed" }, { id: "rejected", label: "Rejected" },

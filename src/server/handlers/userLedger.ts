@@ -4,7 +4,7 @@ import { requireUser } from "../auth";
 import { HttpError, json, pageParams } from "../http";
 import { ledgerStart } from "../ledgerStart";
 
-const CATEGORIES = ["deposit", "withdrawal", "purchase", "profit", "sale", "referral"];
+const CATEGORIES = ["deposit", "withdrawal", "purchase", "profit", "sale", "referral", "adjustment"];
 
 /** The logged-in user's own ledger. The user id always comes from the session token, never from the request. */
 export async function getMyLedger(req: NextRequest) {
