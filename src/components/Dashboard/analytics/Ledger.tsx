@@ -173,7 +173,7 @@ export default function Ledger() {
                   </span>
                   {(r.status === "pending" || r.status === "rejected") && <span className="mt-1 inline-block"><StatusBadge status={r.status} /></span>}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums" style={{ color: VIZ.textSecondary }}>{r.balanceAfter == null || r.status === "rejected" ? "—" : money2(r.balanceAfter)}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums" style={{ color: VIZ.textSecondary }}>{r.balanceAfter == null ? "—" : money2(r.balanceAfter)}</td>
               </tr>
             ))}
             {data && rows.length === 0 && <tr><td colSpan={5} className="px-4 py-14 text-center" style={{ color: VIZ.muted }}>No ledger entries match these filters.</td></tr>}
