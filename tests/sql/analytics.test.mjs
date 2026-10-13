@@ -249,3 +249,22 @@ describe("access control", () => {
     }
   });
 });
+
+test("ledger running balance counts from p_start with an opening balance of zero", async () => {
+  const d = await createDb({ parsers: { 1700: (x) => parseFloat(x) } });
+  const adm = await makeUser(d, { role: "admin" }), u = await makeUser(d);
+  const tx = (type, amount, status, at) => d.query(`insert into public.transactions (user_id, type, amount, status, transaction_date, processed_at) values ($1,$2,$3,$4,$5,$5)`, [u, type, amount, status, at]);
+  await tx("ADMIN_ADD", 999, "approved", "2026-05-01T10:00:00Z");           // before the start: hidden and not counted
+  await tx("ADMIN_ADD", 100, "approved", "2026-05-25T10:00:00Z");
+  await tx("MACHINE_PURCHASE", 30, "completed", "2026-05-26T10:00:00Z");
+  await tx("withdrawal", 50, "pending", "2026-05-27T10:00:00Z");           // a hold: balance unchanged
+  await tx("withdrawal", 20, "approved", "2026-05-28T10:00:00Z");
+  const r = (await d.query(`select public.fn_admin_ledger($1, null, null, null, null, null, null, null, null, 50, 0, '2026-05-25T00:00:00Z') as r`, [adm])).rows[0].r;
+  assert.equal(r.total, 4);
+  assert.deepEqual(r.rows.map((x) => x.balanceAfter).reverse(), [100, 70, 70, 50]);
+  assert.deepEqual(r.rows.map((x) => x.balanceBefore).reverse(), [0, 100, 70, 70]);
+  assert.equal(r.totals.credits, 100);
+  // a category filter must not change the running figures
+  const w = (await d.query(`select public.fn_admin_ledger($1, null, null, array['withdrawal'], null, null, null, null, null, 50, 0, '2026-05-25T00:00:00Z') as r`, [adm])).rows[0].r;
+  assert.deepEqual(w.rows.map((x) => x.balanceAfter).reverse(), [70, 50]);
+});
