@@ -113,10 +113,15 @@ export async function migrate({ db, sb, commit = false, log = () => {} }) {
   }
   const balanceRows = [];
   for (const b of balances.values()) {
-    const row = { user_id: b.user_id, admin_add: round4(Math.max(0, b.admin_add)), mining_balance: round4(Math.max(0, b.mining_balance)) };
+    // The old backend let a user pay for shares from mining profit while deducting it all from adminAdd, so adminAdd could go
+    // negative while the total stayed valid. The new table forbids negatives: move the deficit into the mining balance
+    // (keeping the total) instead of clamping it to 0, which would invent money.
+    const folded = b.admin_add < 0 ? b.admin_add : 0;
+    const row = { user_id: b.user_id, admin_add: round4(Math.max(0, b.admin_add)), mining_balance: round4(Math.max(0, b.mining_balance + folded)) };
     const email = mongoUserById.get(b.user_id)?.email;
     const notes = [];
-    if (b.admin_add < 0 || b.mining_balance < 0) notes.push("negative balance clamped to 0");
+    if (b.admin_add < 0) notes.push(`negative adminAdd (${b.admin_add}) folded into the mining balance`);
+    if (b.mining_balance + folded < 0) notes.push("total balance was negative: set to 0");
     if (b._legacy) notes.push(`legacy mainBalance ${b._legacy} added to admin_add`);
     if (Number.isFinite(b._mongoTotal) && Math.abs(b._mongoTotal - (b.admin_add + b.mining_balance - (b._legacy || 0))) > 0.005) {
       notes.push(`Mongo totalBalance (${b._mongoTotal}) differed from adminAdd+miningBalance (e.g. unbooked referral bonus)`);
