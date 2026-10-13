@@ -171,6 +171,22 @@ const mk = async (token) => {
   check("admin Deposits: clicking a user shows only that user's deposits with a removable chip", (await page.locator("tbody tr").count()) === mine && (await page.getByRole("button", { name: "Show all users" }).count()) === 1, `${mine}`);
   await page.getByRole("button", { name: "Show all users" }).click();
   await page.waitForFunction((n) => document.querySelectorAll("tbody tr").length === Math.min(50, n), total, { timeout: 10000 }).catch(() => {});
+  // ---- admin adds balance through the dialog
+  await page.goto(`${BASE}/Dashboard/Deposits/`);
+  const target = users[5];
+  const balBefore = await balanceOf(target.id);
+  await page.getByRole("button", { name: "Add balance" }).first().click();
+  await page.getByPlaceholder("Search name or email…").fill(target.email.slice(0, 12));
+  await page.getByRole("button", { name: new RegExp(target.email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) }).first().click();
+  await page.locator("#ab-amount").fill("75.25");
+  await page.locator("#ab-note").fill("E2E test credit");
+  await page.getByRole("button", { name: "Review" }).click();
+  check("add balance: asks for confirmation showing old and new balance", await seen(page.getByText(/Their balance will go from/)));
+  await page.getByRole("button", { name: "Confirm and add" }).click();
+  await page.waitForFunction(() => !document.body.innerText.includes("Confirm and add"), null, { timeout: 10000 }).catch(() => {});
+  check("add balance: balance went up by exactly the amount and the ledger entry carries the note", Math.abs((await balanceOf(target.id)) - (balBefore + 75.25)) < 0.001 && Number((await db.query(`select count(*) c from public.transactions where user_id=$1 and type='ADMIN_ADD' and details like '%E2E test credit%' and balance_after = $2`, [target.id, balBefore + 75.25])).rows[0].c) === 1);
+  await page.goto(`${BASE}/Dashboard/Deposits/?tab=admin`);
+  check("add balance: the credit shows under Deposits → Admin credits", await seen(page.getByText("E2E test credit")));
   await page.goto(`${BASE}/Dashboard/`);
   check("Overview shows the deposits-needing-review card", await seen(page.getByText(/2 deposits need review/)));
   check("no uncaught page errors (admin)", errs.length === 0, errs.join(" | "));

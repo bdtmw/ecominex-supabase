@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, Clock, ExternalLink, Search, X, XCircle } from "lucide-react";
+import AddBalanceDialog from "./AddBalanceDialog";
+import { AlertTriangle, Check, Plus, ChevronLeft, ChevronRight, Clock, ExternalLink, Search, X, XCircle } from "lucide-react";
 import { VIZ, money2, num } from "./viz";
 import { useAdminFetch } from "./useAdminFetch";
 import { useUrlState } from "./useUrlState";
@@ -40,6 +41,7 @@ export default function Deposits() {
   const user = url.get("user");
   const pageSize = [25, 50, 100].includes(Number(url.get("size"))) ? Number(url.get("size")) : 50;
   const [searchText, setSearchText] = useState(urlSearch);
+  const [adding, setAdding] = useState(false);
   useEffect(() => {
     if (searchText === urlSearch) return;
     const t = setTimeout(() => url.set({ search: searchText }), 300);
@@ -50,7 +52,7 @@ export default function Deposits() {
   const p = new URLSearchParams({ ...(tabQuery[tab] || {}), page: String(page), limit: String(pageSize) });
   if (user) p.set("user", user);
   if (urlSearch) p.set("search", urlSearch);
-  const { data, loading, error } = useAdminFetch<any>(`/api/v1/admin/deposits?${p}`);
+  const { data, loading, error, refetch } = useAdminFetch<any>(`/api/v1/admin/deposits?${p}`);
   const rows: any[] = data?.rows || [];
   const counts = data?.counts || {};
   const who = user ? (rows[0]?.userName || rows[0]?.userEmail || "this user") : "";
@@ -59,6 +61,11 @@ export default function Deposits() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <button onClick={() => setAdding(true)} className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-500"><Plus className="h-4 w-4" aria-hidden />Add balance</button>
+      </div>
+      <AddBalanceDialog open={adding} onClose={() => setAdding(false)} onDone={refetch}
+        initialUser={user && rows[0] ? { id: user, name: rows[0].userName || "", email: rows[0].userEmail } : null} />
       {error && <div role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
 
       <div className="flex flex-wrap items-center gap-2">

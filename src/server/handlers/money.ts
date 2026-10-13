@@ -38,12 +38,15 @@ export async function getAllBalance(req: NextRequest) {
 
 export async function updateBalance(req: NextRequest) {
   const adminUser = await requireAdmin(req);
-  const { userId, amount } = await readJson(req);
-  if (!isPositiveNumber(amount)) throw new HttpError(400, "Invalid amount");
+  const { userId, amount, note } = await readJson(req);
+  if (!isPositiveNumber(amount) || amount > 1_000_000) throw new HttpError(400, "Invalid amount");
   if (!isUuid(userId)) throw new HttpError(404, "User not found");
-  const { error } = await admin().rpc("fn_admin_add_balance", { p_admin: adminUser.id, p_user: userId, p_amount: amount });
+  if (note !== undefined && note !== null && typeof note !== "string") throw new HttpError(400, "Invalid note");
+  const { data, error } = await admin().rpc("fn_admin_add_balance", {
+    p_admin: adminUser.id, p_user: userId, p_amount: Math.round(amount * 100) / 100, p_note: note ?? null,
+  });
   if (error) throw error;
-  return json({ message: "Admin balance added successfully 🤝" });
+  return json({ message: "Admin balance added successfully 🤝", newBalance: data?.newBalance ?? null });
 }
 
 // --------------------------------------------------- machine purchase / sale

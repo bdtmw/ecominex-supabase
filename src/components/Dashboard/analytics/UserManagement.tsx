@@ -3,11 +3,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, BookOpen, ChevronLeft, ChevronRight, Download, MoreVertical, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, BookOpen, ChevronLeft, ChevronRight, Download, MoreVertical, Plus, Search, X } from "lucide-react";
 import Swal from "sweetalert2";
 import { toast } from "sonner";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import UserBalanceUpdate from "@/components/AllUser/updateBalance";
+import AddBalanceDialog from "./AddBalanceDialog";
 import { useDeleteUserMutation } from "@/lib/feature/auth/adminApiSlice";
 import { VIZ, money, num } from "./viz";
 import { downloadCsv, useAdminFetch } from "./useAdminFetch";
@@ -195,6 +194,7 @@ export default function UserManagement() {
                 <td className="relative px-2 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-1">
                     <Link href={`/Dashboard/Ledger?user=${u.id}`} title="Open this user's ledger" className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-green-400 hover:bg-green-500/10"><BookOpen className="h-3.5 w-3.5" aria-hidden />Ledger</Link>
+                    <button onClick={() => setBalanceUser(u)} title="Add balance to this user" className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-green-400 hover:bg-green-500/10"><Plus className="h-3.5 w-3.5" aria-hidden />Add balance</button>
                     <button aria-label={`More actions for ${u.firstName} ${u.lastName}`} aria-haspopup="menu" aria-expanded={menuFor === u.id} onClick={(e) => { e.stopPropagation(); setMenuFor(menuFor === u.id ? null : u.id); }} className="rounded-md p-1.5 text-gray-300 hover:bg-white/10"><MoreVertical className="h-4 w-4" /></button>
                   </div>
                   {menuFor === u.id && (
@@ -228,11 +228,8 @@ export default function UserManagement() {
         </nav>
       )}
 
-      <Dialog open={!!balanceUser} onOpenChange={(o) => { if (!o) { setBalanceUser(null); refetch(); } }}>
-        <DialogContent className="max-w-lg border border-[#333] bg-[#121212]">
-          {balanceUser && <UserBalanceUpdate userId={String(balanceUser.id)} userName={`${balanceUser.firstName} ${balanceUser.lastName}`.trim()} />}
-        </DialogContent>
-      </Dialog>
+      <AddBalanceDialog open={!!balanceUser} onClose={() => setBalanceUser(null)} onDone={refetch}
+        initialUser={balanceUser ? { id: String(balanceUser.id), name: `${balanceUser.firstName || ""} ${balanceUser.lastName || ""}`.trim(), email: balanceUser.email, balance: balanceUser.totalBalance } : null} />
     </div>
   );
 }

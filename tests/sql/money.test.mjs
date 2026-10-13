@@ -346,3 +346,16 @@ describe("NOWPayments callbacks (provider retries and out-of-order delivery)", (
     assert.equal((await err(apply("00000000-0000-0000-0000-000000000000", "finished"))).code, "P0002");
   });
 });
+
+describe("admin add balance with a note", () => {
+  test("stores the note on the ledger entry, returns the new balance and caps the amount", async () => {
+    const adm = await makeUser(db, { role: "admin" }), u = await makeUser(db, { adminAdd: 10 });
+    const r = await call("fn_admin_add_balance", adm, u, 25.5, "Binance Pay, TX 8f2a");
+    assert.equal(r.newBalance, 35.5);
+    assert.match(r.details, /Admin balance add: \$25\.5 · Binance Pay, TX 8f2a/);
+    const plain = await call("fn_admin_add_balance", adm, u, 4);
+    assert.equal(plain.details, "Admin balance add: $4");
+    assert.equal((await err(call("fn_admin_add_balance", adm, u, 1000001))).code, "P0001");
+    assert.equal(Number((await db.query(`select total_balance::float b from public.balances where user_id=$1`, [u])).rows[0].b), 39.5);
+  });
+});
