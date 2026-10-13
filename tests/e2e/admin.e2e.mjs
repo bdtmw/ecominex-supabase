@@ -148,13 +148,13 @@ const L30 = await ledger(30);
 await page.goto(`${BASE}/Dashboard/Ledger/`);
 await page.getByText("Money in").waitFor();
 await page.waitForFunction(() => document.querySelectorAll("tbody tr").length > 1, null, { timeout: 15000 });
-const lt = async (label) => text(page.locator("div.rounded-2xl", { has: page.getByText(label, { exact: true }) }).locator("p").nth(1));
+const lt = async (label) => text(page.locator("[data-stat]", { has: page.getByText(label, { exact: true }) }).locator("dd"));
 check("ledger: totals tiles equal SQL (money in / out / on hold)", (await lt("Money in")) === money(L30.totals.credits) && (await lt("Money out")) === money(L30.totals.debits) && (await lt("On hold (pending withdrawals)")) === money(L30.totals.pendingHold), `${await lt("Money in")} ${await lt("Money out")}`);
 check("ledger: shows 50 rows per page and the right entry count", (await page.locator("tbody tr").count()) === Math.min(50, L30.total) && (await page.getByText(new RegExp(`${L30.total} entr`)).count()) >= 1, `${L30.total}`);
 await page.evaluate(() => window.scrollTo(0, 0));
 await page.screenshot({ path: `${OUT}/3-ledger.png` });
 
-await page.getByRole("button", { name: "Withdrawals", exact: true }).click();
+await page.locator('select[aria-label="Type"]').selectOption("withdrawal");
 await page.waitForURL(/category=withdrawal/);
 const Lw = await ledger(30, ["withdrawal"]);
 await page.waitForFunction((n) => document.querySelectorAll("tbody tr").length === n, Math.min(50, Lw.total), { timeout: 10000 }).catch(() => {});
