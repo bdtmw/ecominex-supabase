@@ -43,8 +43,9 @@ export function startFakeSupabase(db, port) {
         for (const [k, v] of url.searchParams) {
           if (["select", "limit", "offset", "order"].includes(k)) continue;
           if (!ident.test(k)) return send(400, { message: "bad column" });
-          const eq = /^eq\.(.*)$/.exec(v), inn = /^in\.\((.*)\)$/.exec(v);
-          if (eq) { params.push(eq[1]); where.push(`${k}::text = $${params.length}`); }
+          const eq = /^eq\.(.*)$/.exec(v), inn = /^in\.\((.*)\)$/.exec(v), gte = /^gte\.(.*)$/.exec(v);
+          if (gte) { params.push(gte[1]); where.push(`${k} >= $${params.length}::timestamptz`); }
+          else if (eq) { params.push(eq[1]); where.push(`${k}::text = $${params.length}`); }
           else if (inn) { const vals = inn[1].split(",").map((x) => x.replace(/^"|"$/g, "")); params.push(pgArray(vals)); where.push(`${k}::text = any($${params.length}::text[])`); }
         }
         const ord = url.searchParams.get("order");

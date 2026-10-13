@@ -136,7 +136,7 @@ export default function Ledger() {
           </div>
         ))}
         <p className="ml-auto flex items-center gap-1.5 text-xs" style={{ color: VIZ.muted }}>
-          {data ? `${num(data.total)} entr${data.total === 1 ? "y" : "ies"}` : ""}
+          {data ? `${num(data.total)} entr${data.total === 1 ? "y" : "ies"}` : ""}{data?.startsAt ? ` · from ${new Date(data.startsAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}` : ""}
           <span title="Totals count only entries that moved money. A pending withdrawal is a hold and a rejected one has no effect. Times are in your local time."><Info className="h-3.5 w-3.5" aria-label="How totals are counted" /></span>
         </p>
       </dl>

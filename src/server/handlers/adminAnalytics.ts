@@ -3,6 +3,7 @@ import { admin } from "../supabase";
 import { requireAdmin } from "../auth";
 import { HttpError, json, isUuid, pageParams } from "../http";
 import { csvResponse } from "../csv";
+import { ledgerStart, clampFrom } from "../ledgerStart";
 
 const DAY = 86400000;
 const startOfUtcDay = (d: Date) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -119,6 +120,9 @@ function ledgerArgs(sp: URLSearchParams, adminId: string) {
   let from: string | null = null, to: string | null = null;
   if (sp.get("range") && sp.get("range") !== "all") { const r = resolveRange(sp); from = r.from.toISOString(); to = r.to.toISOString(); }
 
+  const start = ledgerStart();
+  from = clampFrom(from, start);
+
   return {
     p_admin: adminId, p_from: from, p_to: to, p_categories: list("category", CATEGORIES), p_statuses: list("status", STATUSES),
     p_user: user || null, p_search: (sp.get("search") || "").slice(0, 100) || null, p_min: num("min"), p_max: num("max"),
@@ -136,15 +140,17 @@ export async function getLedger(req: NextRequest) {
   // A user's full history that starts with money already in the account (e.g. history that was never imported):
   // say so on the last page instead of leaving the first balance unexplained. Only for an unfiltered single-user view.
   let opening: { amount: number; at: string } | null = null;
-  const unfiltered = args.p_user && !args.p_from && !args.p_to && !args.p_categories && !args.p_statuses && !args.p_search && args.p_min === null && args.p_max === null;
+  const start = ledgerStart();
+  const unfiltered = args.p_user && (!args.p_from || args.p_from === start?.toISOString()) && !args.p_to && !args.p_categories && !args.p_statuses && !args.p_search && args.p_min === null && args.p_max === null;
   if (unfiltered && page >= totalPages) {
-    const { data: first, error: e2 } = await admin().from("v_ledger").select("balance_before, effective_at")
-      .eq("user_id", args.p_user as string).order("effective_at", { ascending: true }).order("id", { ascending: true }).limit(1);
+    let q = admin().from("v_ledger").select("balance_before, effective_at").eq("user_id", args.p_user as string);
+    if (start) q = q.gte("effective_at", start.toISOString());
+    const { data: first, error: e2 } = await q.order("effective_at", { ascending: true }).order("id", { ascending: true }).limit(1);
     if (e2) throw e2;
     const before = first?.[0]?.balance_before == null ? 0 : Number(first[0].balance_before);
     if (before > 0.005) opening = { amount: before, at: first![0].effective_at };
   }
-  return json({ ...data, opening, page, limit, totalPages });
+  return json({ ...data, opening, startsAt: start ? start.toISOString() : null, page, limit, totalPages });
 }
 
 export async function exportLedger(req: NextRequest) {
