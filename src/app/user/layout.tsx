@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Server,
   Wallet,
+  BookOpen,
   Users,
   Settings,
   Menu,
@@ -103,6 +104,7 @@ export function DashboardSidebar({ onLogout }: DashboardSidebarProps) {
     { title: "Dashboard", url: "/user/dashboard", icon: LayoutDashboard },
     { title: "Machines", url: "/user/machines", icon: Server },
     { title: "Wallet", url: "/user/wallet", icon: Wallet },
+    { title: "Ledger", url: "/user/ledger", icon: BookOpen },
     { title: "Referrals", url: "/user/referrals", icon: Users },
     { title: "Settings", url: "/user/settings", icon: Settings },
     { title: "Logout", url: "#", icon: LogOut, action: onLogout }, // attach action

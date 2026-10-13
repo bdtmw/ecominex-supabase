@@ -187,6 +187,24 @@ if (Lall.total > 50) {
   check("ledger: pagination reaches page 2", (await page.getByText(/Page 2 of/).count()) === 1);
 }
 
+// =====================================================================  USER'S OWN LEDGER
+{
+  const u = users[3];
+  const userTok = await new SignJWT({}).setProtectedHeader({ alg: "HS256" }).setSubject(u.id).setExpirationTime("1d").sign(new TextEncoder().encode(SECRET));
+  const mine = await (await fetch(`${BASE}/api/v1/my-ledger/?limit=100`, { headers: { authorization: `Bearer ${userTok}` } })).json();
+  const own = (await db.query(`select count(*)::int c from public.transactions where user_id = $1 and transaction_date >= '2026-05-25'`, [u.id])).rows[0].c;
+  check("my-ledger: returns only the logged-in user's entries", mine.total === own && mine.rows.every((r) => r.id) && !JSON.stringify(mine).includes("adminComment"), `${mine.total} vs ${own}`);
+  check("my-ledger: needs a login", (await fetch(`${BASE}/api/v1/my-ledger/`)).status === 401);
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await ctx.addInitScript((t) => { localStorage.setItem("token", t); localStorage.setItem("IsAuthenticate", "true"); }, userTok);
+  await ctx.route(/googletagmanager|lovable\.app/, (r) => r.abort());
+  const up = await ctx.newPage();
+  await up.goto(`${BASE}/user/ledger/`);
+  await up.getByText("Current balance").waitFor({ timeout: 20000 });
+  check("user ledger page: shows their balance and entries", (await up.locator("tbody tr").count()) === Math.min(25, own) || own === 0, `${await up.locator("tbody tr").count()} vs ${own}`);
+  await ctx.close();
+}
+
 // =====================================================================  NAVIGATION + CROSS-LINKS
 await page.goto(`${BASE}/Dashboard/`);
 await page.getByText("Needs attention").waitFor();

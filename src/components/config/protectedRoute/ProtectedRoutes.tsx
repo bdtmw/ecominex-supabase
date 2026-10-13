@@ -18,7 +18,7 @@ const ProtectedRoutes: React.FC<ProtectedRoutesProps> = ({ children }) => {
   const { data: user } = useGetCurrentUserQuery();
 
   const adminRoutes = ["/Dashboard/AllUser/", "/Dashboard/AllTransaction/", "/Dashboard/ContactUs/", "/Dashboard/Machine/", "/Dashboard/UserProfile/", "/Dashboard/"];
-  const userRoutes = ["/user/dashboard/", "/user/referrals/", "/user/machines/", "/user/wallet/", "/user/settings/"];
+  const userRoutes = ["/user/dashboard/", "/user/referrals/", "/user/machines/", "/user/wallet/", "/user/ledger/", "/user/settings/"];
 
   useEffect(() => {
     if (isAuth !== "true") {

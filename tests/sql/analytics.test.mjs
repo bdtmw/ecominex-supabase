@@ -268,3 +268,26 @@ test("ledger running balance counts from p_start with an opening balance of zero
   const w = (await d.query(`select public.fn_admin_ledger($1, null, null, array['withdrawal'], null, null, null, null, null, 50, 0, '2026-05-25T00:00:00Z') as r`, [adm])).rows[0].r;
   assert.deepEqual(w.rows.map((x) => x.balanceAfter).reverse(), [70, 50]);
 });
+
+test("user ledger returns only that user's rows, newest first, with their balance and no admin fields", async () => {
+  const d = await createDb({ parsers: { 1700: (x) => parseFloat(x) } });
+  const a = await makeUser(d), b = await makeUser(d);
+  const tx = (u, type, amount, status, at, after) => d.query(`insert into public.transactions (user_id, type, amount, status, transaction_date, processed_at, balance_after, admin_comment) values ($1,$2,$3,$4,$5,$5,$6,'internal note')`, [u, type, amount, status, at, after]);
+  await tx(a, "ADMIN_ADD", 100, "approved", "2026-06-01T10:00:00Z", 100);
+  await tx(a, "withdrawal", 40, "pending", "2026-06-02T10:00:00Z", 100);
+  await tx(a, "profit", 5, "completed", "2026-06-03T10:00:00Z", 105);
+  await tx(a, "ADMIN_ADD", 7, "approved", "2026-04-01T10:00:00Z", 7);        // before the start
+  await tx(b, "ADMIN_ADD", 999, "approved", "2026-06-01T10:00:00Z", 999);    // someone else
+  await d.query(`update public.balances set admin_add = 105 where user_id = $1`, [a]);
+  const r = (await d.query(`select public.fn_user_ledger($1, '2026-05-25T00:00:00Z') as r`, [a])).rows[0].r;
+  assert.equal(r.total, 3);
+  assert.deepEqual(r.rows.map((x) => x.type), ["profit", "withdrawal", "ADMIN_ADD"]);
+  assert.equal(r.balance, 105);
+  assert.equal(r.totals.credits, 105); assert.equal(r.totals.pendingHold, 40);
+  assert.ok(!JSON.stringify(r).includes("internal note"));
+  const only = (await d.query(`select public.fn_user_ledger($1, null, array['profit']) as r`, [a])).rows[0].r;
+  assert.equal(only.total, 1);
+  await d.query(`set role authenticated`);
+  await assert.rejects(d.query(`select public.fn_user_ledger($1)`, [a]), /permission denied/);
+  await d.query(`reset role`);
+});
