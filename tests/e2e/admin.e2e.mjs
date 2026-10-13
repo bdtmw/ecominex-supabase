@@ -168,7 +168,7 @@ await page.waitForFunction((n) => document.querySelectorAll("tbody tr").length =
 check("ledger: category + status combine (pending withdrawals only)", (await page.locator("tbody tr").count()) === Lp.total && (await page.locator("tbody tr", { hasText: "Pending" }).count()) === Lp.total, `${Lp.total}`);
 
 const target = users[12];
-await page.goto(`${BASE}/Dashboard/Ledger/?user=${target.id}&range=all`);
+await page.goto(`${BASE}/Dashboard/Ledger/?user=${target.id}`);
 await page.getByText(/^Only /).waitFor();
 const Lu = await ledger(null, null, null, target.id);
 await page.waitForFunction((n) => document.querySelectorAll("tbody tr").length === n || document.body.innerText.includes("No ledger entries"), Lu.total, { timeout: 10000 }).catch(() => {});

@@ -29,11 +29,13 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function Ledger() {
   const url = useUrlState();
-  const range = url.get("range") || "30d";
   const from = url.get("from"), to = url.get("to");
   const category = url.get("category");
   const status = url.get("status");
   const user = url.get("user");
+  // a single user's statement should show their whole history; the overall ledger defaults to the last 30 days
+  const defaultRange = user ? "all" : "30d";
+  const range = url.get("range") || defaultRange;
   const min = url.get("min"), max = url.get("max");
   const page = Math.max(1, parseInt(url.get("page") || "1", 10) || 1);
   const urlSearch = url.get("search");
@@ -64,7 +66,7 @@ export default function Ledger() {
   const t = data?.totals;
   const selectedCats = category ? category.split(",") : [];
   const typeValue = selectedCats.length === 1 ? selectedCats[0] : selectedCats.length > 1 ? "__multi" : "";
-  const filtered = !!(category || status || user || urlSearch || min || max || range !== "30d");
+  const filtered = !!(category || status || user || urlSearch || min || max || range !== defaultRange);
   const who = user ? (rows[0]?.userName || rows[0]?.userEmail || "this user") : "";
 
   const exportCsv = async () => {
@@ -94,7 +96,7 @@ export default function Ledger() {
         <select aria-label="Status" value={status} onChange={(e) => url.set({ status: e.target.value })} className={sel}>
           {STATUSES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
         </select>
-        <RangePicker allowAll range={range} from={from} to={to} onChange={(r) => url.set({ range: r.range === "30d" ? "" : r.range, from: r.from, to: r.to })} />
+        <RangePicker allowAll range={range} from={from} to={to} onChange={(r) => url.set({ range: r.range === defaultRange ? "" : r.range, from: r.from, to: r.to })} />
         <button onClick={() => setShowMore((v) => !v)} aria-expanded={showMore} className="px-1 text-sm text-gray-400 hover:text-white">{showMore ? "Hide amount" : "Amount…"}</button>
         <button onClick={exportCsv} className="ml-auto inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-gray-200 transition hover:border-green-500/50 hover:text-white"><Download className="h-4 w-4" aria-hidden />Export CSV</button>
       </div>
