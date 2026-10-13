@@ -125,7 +125,6 @@ function ledgerArgs(sp: URLSearchParams, adminId: string) {
 
   return {
     p_admin: adminId, p_from: from, p_to: to, p_categories: list("category", CATEGORIES), p_statuses: list("status", STATUSES),
-    p_start: start ? start.toISOString() : null,
     p_user: user || null, p_search: (sp.get("search") || "").slice(0, 100) || null, p_min: num("min"), p_max: num("max"),
   };
 }

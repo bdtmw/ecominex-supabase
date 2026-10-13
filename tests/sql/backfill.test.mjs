@@ -44,3 +44,20 @@ test("it is idempotent and only service_role may run it", async () => {
   await assert.rejects(call("fn_backfill_transaction_balances"), /permission denied/);
   await db.query(`reset role`);
 });
+
+test("rebuild overwrites stale balances and every chain ends at the current balance", async () => {
+  const d = await createDb({ parsers: { 1700: (x) => parseFloat(x) } });
+  const w = await makeUser(d);
+  const ins = (type, amount, status, at, before, after) => d.query(
+    `insert into public.transactions (user_id, type, amount, status, transaction_date, processed_at, balance_before, balance_after) values ($1,$2,$3,$4,$5,$5,$6,$7)`, [w, type, amount, status, at, before, after]);
+  await ins("ADMIN_ADD", 100, "approved", "2026-06-01T10:00:00Z", 5, 999);      // stale/wrong values
+  await ins("withdrawal", 30, "pending", "2026-06-02T10:00:00Z", 1, 2);
+  await ins("withdrawal", 20, "approved", "2026-06-03T10:00:00Z", 7, 7);
+  await ins("profit", 10, "completed", "2026-06-04T10:00:00Z", null, null);
+  await d.query(`update public.balances set admin_add = 60, mining_balance = 10 where user_id = $1`, [w]);   // 100 - 20 + 10 = 90 recorded, but the account holds 70
+  assert.equal((await d.query(`select public.fn_rebuild_transaction_balances() as n`)).rows[0].n, 4);
+  const r = (await d.query(`select balance_before::float b, balance_after::float a from public.transactions where user_id=$1 order by transaction_date`, [w])).rows;
+  assert.deepEqual(r.map((x) => x.a), [80, 80, 60, 70]);   // the last one is today's balance (70)
+  assert.deepEqual(r.map((x) => x.b), [-20, 80, 80, 60]);
+  assert.equal((await d.query(`select public.fn_rebuild_transaction_balances() as n`)).rows[0].n, 0);   // idempotent
+});

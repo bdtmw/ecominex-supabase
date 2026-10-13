@@ -36,7 +36,7 @@ console.log(COMMIT ? "== COMMIT MODE: writing to Supabase ==" : "== DRY RUN: not
 try {
   const { report, discrepancies, warnings } = await migrate({ db: mongo.db(), sb, commit: COMMIT });
   console.table(report);
-  if (COMMIT) { const { data, error } = await sb.rpc("fn_backfill_transaction_balances"); console.log(error ? `Could not fill running balances (run migration 0006 first): ${error.message}` : `Filled running balances on ${data} transaction(s).`); }
+  if (COMMIT) { const { data, error } = await sb.rpc("fn_rebuild_transaction_balances"); console.log(error ? `Could not fill running balances (run migration 0009 first): ${error.message}` : `Filled running balances on ${data} transaction(s).`); }
   if (warnings.length) { console.log("\nWarnings:"); warnings.slice(0, 50).forEach((w) => console.log(" -", w)); if (warnings.length > 50) console.log(` ... and ${warnings.length - 50} more (see migration-report.json)`); }
 
   writeFileSync("migration-report.json", JSON.stringify({ commit: COMMIT, at: new Date().toISOString(), report, warnings, discrepancies }, null, 2));
