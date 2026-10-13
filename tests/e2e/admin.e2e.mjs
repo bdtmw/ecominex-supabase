@@ -78,28 +78,11 @@ check("overview: 'Funds held' equals the sum of balances", (await page.getByText
 const top = k30.attention.topUsers[0];
 check("overview: largest balance listed first", (await text(page.locator("section", { hasText: "Largest balances" }).locator("ol li").first())).includes(money(top.totalBalance)), top.name);
 
-// charts
-const charts = page.locator('svg[role="img"][aria-label*="arrow keys"]');
-check("overview: three charts render", (await charts.count()) === 3, String(await charts.count()));
-await charts.first().scrollIntoViewIfNeeded();
-const box = await charts.first().boundingBox();
-await page.mouse.move(box.x + box.width * 0.6, box.y + box.height / 2);
-const tip = page.locator('[role="status"]', { hasText: "Deposits" }).first();
-await tip.waitFor({ timeout: 3000 }).catch(() => {});
-check("overview: hovering the cash-flow chart shows one tooltip listing both series", (await tip.isVisible()) && /Withdrawals/.test(await tip.innerText()) && /\$/.test(await tip.innerText()));
-await page.mouse.move(5, 5);
-await charts.first().focus(); await page.keyboard.press("ArrowLeft");
-check("overview: keyboard arrows move the chart readout", (await page.locator('[role="status"]', { hasText: "Deposits" }).count()) >= 1);
-await page.getByRole("button", { name: "Show table" }).first().click();
-const nPoints = (await rpc("fn_admin_timeseries", adminId, windowFor(30).from, windowFor(30).to, "day")).points.length;
-check("overview: table view lists one row per day", (await page.locator("table caption", { hasText: "Cash flow" }).locator("xpath=..").locator("tbody tr").count()) === nPoints, String(nPoints));
-await page.getByRole("button", { name: "Show chart" }).first().click();
+// no charts on the overview
+check("overview: no charts are rendered", (await page.locator('svg[role="img"][aria-label*="arrow keys"]').count()) === 0);
 await page.evaluate(() => window.scrollTo(0, 0));
 await page.waitForTimeout(300);
 await page.screenshot({ path: `${OUT}/1-overview-top.png` });
-await page.evaluate(() => window.scrollTo(0, 700));
-await page.waitForTimeout(300);
-await page.screenshot({ path: `${OUT}/1b-overview-charts.png` });
 await page.evaluate(() => window.scrollTo(0, 0));
 
 // range filter scopes everything

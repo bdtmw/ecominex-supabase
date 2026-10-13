@@ -8,8 +8,6 @@ import { useAdminFetch } from "./useAdminFetch";
 import { useUrlState } from "./useUrlState";
 import RangePicker from "./RangePicker";
 import StatTile from "./StatTile";
-import LineChart from "./LineChart";
-import ColumnChart from "./ColumnChart";
 
 const Card = ({ title, subtitle, action, children, className = "" }: { title: string; subtitle?: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) => (
   <section className={`min-w-0 rounded-2xl bg-[#1e1e1e] p-4 sm:p-5 ${className}`}>
@@ -37,8 +35,6 @@ export default function AdminOverview() {
   const { data: recent } = useAdminFetch<any>("/api/v1/admin/ledger?limit=8");
 
   const cur = data?.current, prev = data?.previous, snap = data?.snapshot, att = data?.attention;
-  const series: any[] = data?.series || [];
-  const col = (k: string) => series.map((p) => Number(p[k]) || 0);
 
   const netNow = cur ? cur.deposits - cur.withdrawals : 0;
   const netPrev = prev ? prev.deposits - prev.withdrawals : 0;
@@ -117,38 +113,21 @@ export default function AdminOverview() {
             sub={cur ? `${money(cur.deposits)} in − ${money(cur.withdrawals)} out` : undefined} />
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
-          <StatTile loading={loading} label="Deposits credited" value={cur ? money(cur.deposits) : "—"} delta={cur ? delta(cur.deposits, prev.deposits) : undefined}
-            spark={col("deposits")} accent={VIZ.deposits} sub={cur ? `${num(cur.depositCount)} deposits` : undefined} />
-          <StatTile loading={loading} label="Withdrawals paid" value={cur ? money(cur.withdrawals) : "—"} delta={cur ? delta(cur.withdrawals, prev.withdrawals) : undefined} upIs="neutral"
-            spark={col("withdrawals")} accent={VIZ.withdrawals} sub={cur ? `${num(cur.withdrawalCount)} payouts` : undefined} />
+          <StatTile loading={loading} label="Deposits credited" value={cur ? money(cur.deposits) : "—"} delta={cur ? delta(cur.deposits, prev.deposits) : undefined}  sub={cur ? `${num(cur.depositCount)} deposits` : undefined} />
+          <StatTile loading={loading} label="Withdrawals paid" value={cur ? money(cur.withdrawals) : "—"} delta={cur ? delta(cur.withdrawals, prev.withdrawals) : undefined} upIs="neutral"  sub={cur ? `${num(cur.withdrawalCount)} payouts` : undefined} />
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile loading={loading} label="New users" value={cur ? num(cur.newUsers) : "—"} delta={cur ? delta(cur.newUsers, prev.newUsers) : undefined} spark={col("newUsers")} accent={VIZ.users} sub={cur ? `${num(cur.newDepositors)} made a first deposit` : undefined} />
+        <StatTile loading={loading} label="New users" value={cur ? num(cur.newUsers) : "—"} delta={cur ? delta(cur.newUsers, prev.newUsers) : undefined}  sub={cur ? `${num(cur.newDepositors)} made a first deposit` : undefined} />
         <StatTile loading={loading} label="Active users" value={cur ? num(cur.activeUsers) : "—"} delta={cur ? delta(cur.activeUsers, prev.activeUsers) : undefined} sub={snap ? `of ${num(snap.users)} users` : undefined} />
-        <StatTile loading={loading} label="Machine investments" value={cur ? money(cur.investments) : "—"} delta={cur ? delta(cur.investments, prev.investments) : undefined} spark={col("investments")} accent={VIZ.investments} sub="bought from balances" />
-        <StatTile loading={loading} label="Mining profit paid" value={cur ? money(cur.profitPaid) : "—"} delta={cur ? delta(cur.profitPaid, prev.profitPaid) : undefined} upIs="neutral" spark={col("profit")} accent={VIZ.profit} sub={cur && cur.referralPaid ? `+ ${money(cur.referralPaid)} referral bonuses` : "credited to users"} />
+        <StatTile loading={loading} label="Machine investments" value={cur ? money(cur.investments) : "—"} delta={cur ? delta(cur.investments, prev.investments) : undefined}  sub="bought from balances" />
+        <StatTile loading={loading} label="Mining profit paid" value={cur ? money(cur.profitPaid) : "—"} delta={cur ? delta(cur.profitPaid, prev.profitPaid) : undefined} upIs="neutral"  sub={cur && cur.referralPaid ? `+ ${money(cur.referralPaid)} referral bonuses` : "credited to users"} />
       </div>
 
-      {/* 3. trends */}
-      <div className="grid gap-4 xl:grid-cols-3">
-        <Card className="xl:col-span-2" title="Cash flow" subtitle={`Deposits credited vs withdrawals paid, per ${data?.bucket === "week" ? "week" : "day"}`}>
-          <LineChart title="Cash flow: deposits and withdrawals" loading={loading} points={series}
-            series={[{ key: "deposits", label: "Deposits", color: VIZ.deposits }, { key: "withdrawals", label: "Withdrawals", color: VIZ.withdrawals }]} format={money} />
-        </Card>
-        <Card title="New users" subtitle={`Sign-ups per ${data?.bucket === "week" ? "week" : "day"}`}>
-          <ColumnChart title="New users" loading={loading} points={series} valueKey="newUsers" label="new users" />
-        </Card>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-3">
-        <Card className="xl:col-span-2" title="Investments vs profit paid" subtitle="What users put into machines, and what mining paid back">
-          <LineChart title="Investments and profit paid" loading={loading} points={series} height={230}
-            series={[{ key: "investments", label: "Investments", color: VIZ.investments }, { key: "profitPaid", label: "Profit paid", color: VIZ.profit }]} format={money} />
-        </Card>
-
-        <Card title="Funds held for users" subtitle="What the platform owes today (not period-bound)">
+      {/* 3. who and what */}
+      <div className="grid gap-4 xl:grid-cols-5">
+        <Card className="xl:col-span-2" title="Funds held for users" subtitle="What the platform owes today (not period-bound)">
           {snap ? (
             <div>
               <p className="text-[32px] font-semibold leading-tight text-white">{money(snap.fundsHeld)}</p>
@@ -170,11 +149,7 @@ export default function AdminOverview() {
             </div>
           ) : <p className="text-sm" style={{ color: VIZ.muted }}>Loading…</p>}
         </Card>
-      </div>
-
-      {/* 4. who and what */}
-      <div className="grid gap-4 xl:grid-cols-5">
-        <Card className="xl:col-span-2" title="Largest balances" subtitle="Where the money sits"
+        <Card className="xl:col-span-3" title="Largest balances" subtitle="Where the money sits"
           action={<Link href="/Dashboard/AllUser?sort=balance&dir=desc" className="text-xs font-medium text-green-400 hover:underline">All users</Link>}>
           {(att?.topUsers || []).length === 0 ? <p className="py-6 text-center text-sm" style={{ color: VIZ.muted }}>No balances yet</p> : (
             <ol className="space-y-3">
@@ -193,7 +168,10 @@ export default function AdminOverview() {
           )}
         </Card>
 
-        <Card className="xl:col-span-3" title="Latest ledger activity" subtitle="Every money movement, newest first"
+      </div>
+
+      <div className="grid gap-4">
+        <Card title="Latest ledger activity" subtitle="Every money movement, newest first"
           action={<Link href="/Dashboard/Ledger" className="inline-flex items-center gap-1 text-xs font-medium text-green-400 hover:underline">Open ledger <ArrowRight className="h-3.5 w-3.5" aria-hidden /></Link>}>
           <div className="relative overflow-x-auto">
             <table className="w-full min-w-[480px] text-left text-sm">

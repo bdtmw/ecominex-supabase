@@ -1,7 +1,6 @@
 import React from "react";
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { VIZ, type DeltaInfo } from "./viz";
-import Sparkline from "./Sparkline";
 
 interface Props {
   label: string;
@@ -10,13 +9,11 @@ interface Props {
   /** is an increase good, bad, or just informational (e.g. withdrawals paid)? decides the delta colour */
   upIs?: "good" | "bad" | "neutral";
   sub?: string;
-  spark?: number[];
-  accent?: string;
   hero?: boolean;
   loading?: boolean;
 }
 
-export default function StatTile({ label, value, delta, upIs = "good", sub, spark, accent, hero, loading }: Props) {
+export default function StatTile({ label, value, delta, upIs = "good", sub, hero, loading }: Props) {
   const tone = (() => {
     if (!delta || delta.dir === "flat" || upIs === "neutral") return VIZ.textSecondary;
     const good = (delta.dir === "up") === (upIs === "good");
@@ -29,7 +26,6 @@ export default function StatTile({ label, value, delta, upIs = "good", sub, spar
       <p className="text-sm" style={{ color: VIZ.textSecondary }}>{label}</p>
       <div className="mt-1 flex items-end justify-between gap-2">
         <p className={`font-semibold leading-tight ${hero ? "text-[48px]" : "text-[26px]"}`} style={{ color: VIZ.text }}>{value}</p>
-        {spark && !hero && <Sparkline values={spark} accent={accent} />}
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-x-2 text-xs" style={{ color: VIZ.muted }}>
         {delta && (
