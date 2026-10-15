@@ -323,6 +323,8 @@ const sharedMachines: AggregatedShare[] = Object.values(grouped);
       <div>
         <h2 className="text-3xl font-bold tracking-tight text-white">Mining Machines</h2>
         <p className="text-slate-400">Purchase machines or manage your investments (10% fee on sales)</p>
+        {user?.email && <p className="mt-1 text-xs text-slate-500">Signed in as {user.email}</p>}
+        {specialError && <p role="alert" className="mt-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">Some of your data could not be loaded: {String(specialError)}. Please refresh; if it stays, contact support.</p>}
       </div>
 
       <Tabs defaultValue="my-machines" className="space-y-4">

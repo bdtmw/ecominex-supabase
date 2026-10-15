@@ -151,9 +151,17 @@ export async function purchaseShares(req: NextRequest) {
 export async function getUserShareDetails(req: NextRequest, { params }: Ctx) {
   const me = await requireUser(req);
   assertSelfOrAdmin(me, params.userId);
-  const { data: shares, error } = await admin().from("share_purchases").select("*, mining_machines(machine_name)")
-    .eq("user_id", params.userId).eq("status", "active");
+  const { data: shares, error } = await admin().from("share_purchases").select("*")
+    .eq("user_id", params.userId).eq("status", "active").order("purchase_date", { ascending: true });
   if (error) throw error;
+  // machine names in a second plain query (no PostgREST embedding to go wrong)
+  const ids = [...new Set((shares || []).map((s: any) => s.machine_id))];
+  const names = new Map<string, string>();
+  if (ids.length) {
+    const { data: ms, error: e2 } = await admin().from("mining_machines").select("id, machine_name").in("id", ids);
+    if (e2) throw e2;
+    for (const m of ms || []) names.set(m.id, m.machine_name);
+  }
 
   const summary = { totalShares: 0, totalInvestment: 0, totalProfitEarned: 0, expectedMonthlyProfit: 0 };
   const details = (shares || []).map((s: any) => {
@@ -162,7 +170,7 @@ export async function getUserShareDetails(req: NextRequest, { params }: Ctx) {
     summary.totalProfitEarned += num(s.total_profit_earned);
     summary.expectedMonthlyProfit += s.number_of_shares * num(s.profit_per_share);
     return {
-      id: s.id, machineName: s.mining_machines?.machine_name, numberOfShares: s.number_of_shares,
+      id: s.id, machineName: names.get(s.machine_id), numberOfShares: s.number_of_shares,
       pricePerShare: num(s.price_per_share), profitPerShare: num(s.profit_per_share), totalInvestment: num(s.total_investment),
       totalProfitEarned: num(s.total_profit_earned), purchaseDate: s.purchase_date, lastProfitUpdate: s.last_profit_update,
       nextProfitUpdate: new Date(new Date(s.last_profit_update).getTime() + 30 * 86400000),
