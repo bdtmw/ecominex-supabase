@@ -10,6 +10,7 @@ import { fetchUserWithdrawals } from "@/lib/feature/withdraw/withdrawalSlice";
 import { DollarSign, Server, TrendingUp, Users, ArrowUpFromLine, ArrowDownToLine } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import { fetchUserMachines } from "@/lib/feature/userMachine/usermachineApi";
+import { getUserShareDetails } from "@/lib/feature/shareMachine/shareMachineSlice";
 import { getUserBalance } from "@/lib/feature/userMachine/balanceSlice";
 import { getReferralById, Referral as ReferralType } from '@/lib/feature/userMachine/profitSlice';
 import { AppDispatch, RootState } from '@/lib/store/store';
@@ -38,6 +39,8 @@ export default function Dashboard() {
 
 
   const { userMachines } = useSelector((state: RootState) => state.userMachine);
+  const userShares = useSelector((state: RootState) => state.shareMachine.userShares);
+  const shareCount = userShares?.summary?.totalShares ?? 0;
   const { withdrawals, isLoading: withdrawalsLoading, error: withdrawalsError } = useSelector(
     (state: RootState) => state.withdrawal
   );
@@ -60,6 +63,7 @@ const auth = useSelector((state: RootState) => state.auth);
     console.log(user)
     if (user?.id) {
       dispatch(fetchUserMachines(user.id));
+      dispatch(getUserShareDetails(user.id));
       dispatch(getUserBalance(user.id));
       dispatch(getReferralById(user.id));
       if (user.email) dispatch(fetchUserWithdrawals({ email: user.email }));
@@ -230,10 +234,12 @@ const stats = [
     gradient: "bg-green-600",
   },
   {
-    title: "Active Machines",
+    title: shareCount > 0 ? "Machines & Shares" : "Active Machines",
     value: balanceLoading || !userMachines
       ? "Loading..."
-      : `${userMachines.filter((m) => m.status?.toLowerCase() === "active").length}`,
+      : shareCount > 0
+        ? `${userMachines.filter((m) => m.status?.toLowerCase() === "active").length} machines · ${shareCount} shares`
+        : `${userMachines.filter((m) => m.status?.toLowerCase() === "active").length}`,
     icon: Server,
     gradient: "bg-green-600",
   },
