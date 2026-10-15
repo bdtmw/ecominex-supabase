@@ -10,6 +10,7 @@ import { fetchUserWithdrawals } from "@/lib/feature/withdraw/withdrawalSlice";
 import { DollarSign, Server, TrendingUp, Users, ArrowUpFromLine, ArrowDownToLine } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import { fetchUserMachines } from "@/lib/feature/userMachine/usermachineApi";
+import RecentActivity from "@/components/myAccount/RecentActivity";
 import { getUserShareDetails } from "@/lib/feature/shareMachine/shareMachineSlice";
 import { getUserBalance } from "@/lib/feature/userMachine/balanceSlice";
 import { getReferralById, Referral as ReferralType } from '@/lib/feature/userMachine/profitSlice';
@@ -480,44 +481,7 @@ const stats = [
           <CardTitle className="text-white">Recent Transactions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {withdrawalsLoading ? (
-  <p className="text-white">Loading...</p>
-) : withdrawalsError ? (
-  <p className="text-red-500">Failed to load withdrawals</p>
-) : (
-  withdrawals?.slice(0, 3).map((w) => {
-    const isWithdrawal = w.type === "withdrawal";
-    const isDeposit   = w.type === "ADMIN_ADD";
-
-    const title = isWithdrawal
-      ? "Withdrawal"
-      : isDeposit
-      ? "Deposit"
-      : "Transaction";
-
-    const amountPrefix = isWithdrawal ? "-" : "+"; // default + for others
-
-    return (
-      <div
-        key={w._id || `${w.type}-${w.amount}-${w.transactionDate}`}
-        className="flex items-center justify-between border-b border-slate-700/30 pb-3 last:border-0 last:pb-0"
-      >
-        <div>
-          <p className="font-medium text-white">{title}</p>
-          <p className="text-sm text-slate-400">
-            {amountPrefix}${Number(w.amount).toLocaleString()}
-          </p>
-        </div>
-
-        <p className="text-xs text-slate-500">
-          {new Date(w.transactionDate).toLocaleString()}
-        </p>
-      </div>
-    );
-  })
-)}
-          </div>
+          <RecentActivity limit={8} />
         </CardContent>
       </Card>
     </div>

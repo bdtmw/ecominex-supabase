@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/lib/store/store";
 import { validateWalletAddress } from "@/utils/walletValidation";
 import { getUserBalance } from "@/lib/feature/userMachine/balanceSlice";
+import RecentActivity from "@/components/myAccount/RecentActivity";
 import { fetchUserWithdrawals } from "@/lib/feature/withdraw/withdrawalSlice";
 import { requestWithdrawal } from "@/lib/feature/withdraw/withdrawalSlice";
 import { Button } from "@/components/ui/button";
@@ -460,69 +461,13 @@ if (!validateWalletAddress(withdrawAddress, withdrawNetwork as NetworkType)) {
             Transaction History
           </CardTitle>
           <CardDescription className="text-slate-400">
-            Your recent withdrawals
+            Everything that moved on your account
           </CardDescription>
         </CardHeader>
 
         <CardContent>
-  {withdrawalsLoading && (
-    <p className="text-white">Loading transactions...</p>
-  )}
-
-  {!withdrawalsLoading && withdrawals?.length === 0 && (
-    <p className="text-slate-400">No withdrawal history found</p>
-  )}
-
-  <div className="space-y-3">
-    {withdrawals?.map((w) => {
-      const isWithdrawal = w.type === "withdrawal";
-      const isDeposit = w.type === "ADMIN_ADD";
-
-      const title = isWithdrawal
-        ? "Withdrawal"
-        : isDeposit
-        ? "Deposit"
-        : "Transaction";
-
-      const amountPrefix = isWithdrawal ? "-" : "+";
-
-      return (
-        <div
-          key={w._id}
-          className="flex justify-between items-center p-3 border border-slate-700 rounded-lg"
-          style={{ backgroundColor: "#1b1b1b" }}
-        >
-          <div>
-            <p className="text-white font-medium">{title}</p>
-            <p className="text-slate-400 text-sm">
-              {new Date(w.transactionDate).toLocaleDateString()}
-            </p>
-          </div>
-
-          <div className="text-right">
-            {/* amount styling unchanged */}
-            <p className="text-white font-bold">
-              {amountPrefix}${Number(w.amount).toLocaleString()}
-            </p>
-
-            {/* status styling unchanged */}
-            <p
-              className={`text-xs ${
-                w.status === "pending"
-                  ? "text-yellow-400"
-                  : w.status === "rejected"
-                  ? "text-[#ff0000]"
-                  : "text-emerald-400"
-              }`}
-            >
-              {w.status}
-            </p>
-          </div>
-        </div>
-      );
-    })}
-  </div>
-</CardContent>
+          <RecentActivity limit={15} bordered />
+        </CardContent>
       </Card>
     </div>
   );

@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit -p .",
     "migrate:mongo": "node scripts/migrate-from-mongo.mjs",
     "test:e2e": "node tests/e2e/admin.e2e.mjs",
-    "test:e2e:np": "node tests/e2e/nowpayments.e2e.mjs"
+    "test:e2e:np": "node tests/e2e/nowpayments.e2e.mjs",
+    "test:e2e:user": "node tests/e2e/userpages.e2e.mjs"
   },
   "dependencies": {
     "@fontsource/roboto": "^5.2.8",
