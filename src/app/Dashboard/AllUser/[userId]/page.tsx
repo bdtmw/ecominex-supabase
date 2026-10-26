@@ -24,6 +24,7 @@ import Image from "next/image";
 import { ToastContainer } from "react-toastify";
 import Link from "next/link";
 import ProtectedRoutes from "@/components/config/protectedRoute/ProtectedRoutes";
+import { useAdminFetch } from "@/components/Dashboard/analytics/useAdminFetch";
 
 interface RootState {
   userMachine: {
@@ -107,6 +108,12 @@ const UserDetailsPage = () => {
   const { users } = useUsers();
   const currentUser = users?.find((user) => user._id === userId) || null;
 
+  // exact money figures come from the same source as the Users table (full, unrounded, not limited by the ledger start date)
+  const overviewUrl = currentUser?.email ? `/api/v1/admin/users/overview?search=${encodeURIComponent(currentUser.email)}&limit=5` : null;
+  const { data: overview } = useAdminFetch<any>(overviewUrl);
+  const money = overview?.rows?.find((r: any) => r.id === userId) || null;
+  const usd = (n?: number) => "$" + Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   useEffect(() => {
     if (userId && currentUser?.email) {
       setLocalLoading(true);
@@ -170,9 +177,9 @@ const UserDetailsPage = () => {
       navigate: "",
     },
     {
-      title: "Total Transaction",
-      value: transactions?.totalTransactions || 0,
-      note: " Count of all Transaction ",
+      title: "Total Invested",
+      value: money ? usd(money.totalDeposited) : "…",
+      note: money ? `Total deposited · Withdrawn ${usd(money.totalWithdrawn)} · Balance ${usd(money.totalBalance)}` : "Total deposited by this user",
       gradient: false,
       navigate: "",
     },
@@ -286,10 +293,9 @@ const UserDetailsPage = () => {
 
         <div>
           <Tabs defaultValue="assign" className="w-full mt-5">
-            <TabsList className="grid grid-cols-3 mb-8 gap-10 w-[400px] bg-transparent text-white text-[15.5px]">
+            <TabsList className="grid grid-cols-2 mb-8 gap-10 w-[280px] bg-transparent text-white text-[15.5px]">
               <TabsTrigger value="assign">Overview</TabsTrigger>
               <TabsTrigger value="assigned">Machines</TabsTrigger>
-              <TabsTrigger value="addmachine">Transactions</TabsTrigger>
             </TabsList>
 
             {/* ============ TAB 1 — OVERVIEW ============ */}
@@ -539,132 +545,6 @@ const UserDetailsPage = () => {
               </div>
             </TabsContent>
 
-{/* ============ TAB 3 — TRANSACTIONS ============ */}
-<TabsContent value="addmachine">
-  <div className="bg-[#1b1b1b] px-6 py-6 rounded-md">
-    <div>
-      <h1 className="text-white text-[25px] font-semibold mb-5">
-        Transaction History
-      </h1>
-    </div>
-
-    <div>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-gray-200 border-b border-[#ffffff65] text-[16px]">
-            <th className="py-3 text-left font-medium">Date</th>
-            <th className="py-3 text-left font-medium">Type</th>
-            <th className="py-3 text-center font-medium">Amount</th>
-            <th className="py-3 text-center font-medium">Status</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {isLoading ? (
-            <tr>
-              <td colSpan={4} className="py-8 text-center text-gray-300">
-                Loading...
-              </td>
-            </tr>
-          ) : withdrawals.length === 0 ? (
-            <tr>
-              <td colSpan={4} className="py-8 text-center text-gray-300">
-                No transactions found.
-              </td>
-            </tr>
-          ) : (
-            withdrawals.map((item) => {
-              // ✅ Normalize type to lowercase
-              const type = (item.type || "").toLowerCase();
-
-              // ✅ Debug — check what type is coming through
-              console.log("Transaction type:", item.type, "→ normalized:", type);
-
-              // ✅ Map type to display label
-              const typeLabel =
-                type === "admin_add"
-                  ? "Deposit"
-                  : type === "withdrawal"
-                  ? "Withdrawal"
-                  : type === "profit"
-                  ? "Profit"
-                  : type === "machine_purchase"
-                  ? "Machine Purchase"
-                  : type === "machine_sale"
-                  ? "Machine Sale"
-                  : type === "share_purchase"
-                  ? "Share Purchase"
-                  : type === "share_profit"
-                  ? "Share Profit"
-                  : type === "share_sale"
-                  ? "Share Sale"
-                  : item.type || "N/A";
-
-              // ✅ Determine color using hex codes (bypass Tailwind purge)
-              const typeColor =
-                type === "admin_add" ||
-                type === "profit" ||
-                type === "share_profit"
-                  ? "#4ade80" // green-400
-                  : type === "withdrawal"
-                  ? "#f87171" // red-400
-                  : type === "machine_purchase" || type === "share_purchase"
-                  ? "#60a5fa" // blue-400
-                  : type === "machine_sale" || type === "share_sale"
-                  ? "#facc15" // yellow-400
-                  : "#d1d5db"; // gray-300
-
-              return (
-                <tr
-                  key={item._id}
-                  className="border-b border-[#ffffff65] hover:bg-[#0f0f0f78] duration-300"
-                >
-                  {/* DATE */}
-                  <td className="py-4 flex items-center gap-3 text-white">
-                    <div>
-                      <span className="font-medium text-[15px] block">
-                        {formatDate(item.transactionDate)}
-                      </span>
-                    </div>
-                  </td>
-
-                  {/* ✅ TYPE — with inline color style */}
-                  <td
-                    className="py-4 text-start font-medium"
-                    style={{ color: typeColor }}
-                  >
-                    {typeLabel}
-                  </td>
-
-                  {/* AMOUNT */}
-                  <td className="py-4 text-center text-[16px] font-[600] text-white">
-                    ${formatAmount(item.amount)}
-                  </td>
-
-                  {/* STATUS */}
-                  <td className="py-4 text-center">
-                    <span
-                      className={`px-2 py-1 rounded-full text-[13px] ${
-                        (item.status ?? "").toLowerCase() === "approved" ||
-                        (item.status ?? "").toLowerCase() === "completed"
-                          ? "bg-green-800/40 text-green-400"
-                          : (item.status ?? "").toLowerCase() === "pending"
-                          ? "bg-yellow-800/40 text-yellow-400"
-                          : "bg-[#66000095] text-red-400"
-                      }`}
-                    >
-                      {item.status ?? "-"}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</TabsContent>
           </Tabs>
         </div>
       </DashboardLayout>
