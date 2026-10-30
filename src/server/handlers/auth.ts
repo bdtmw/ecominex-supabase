@@ -24,7 +24,7 @@ async function isConfirmed(userId: string): Promise<boolean> {
 }
 
 const sessionUser = (p: Profile) => ({
-  _id: p.id, firstName: p.first_name, lastName: p.last_name, email: p.email, role: p.role,
+  _id: p.id, id: p.id, firstName: p.first_name, lastName: p.last_name, email: p.email, role: p.role,
   phoneNumber: p.phone_number, referralCode: p.referral_code, referralId: p.referred_by,
   twoFactorEnabled: p.two_factor_enabled,
 });

@@ -176,15 +176,11 @@ if (!validateWalletAddress(withdrawAddress, withdrawNetwork as NetworkType)) {
   toast.error("Please enter a valid wallet address for the selected network.");
   return;
 }
-
-    if (!user?.id || !user?.email) {
-      toast.error("User not authenticated");
-      return;
-    }
+    // identity comes from the session token on the server, so no client-side id/email gate here
 
     const payload = {
-      userId: user.id,
-    email: user.email,
+      userId: (user?.id ?? user?._id ?? "") as string,
+    email: (user?.email ?? "") as string,
     amount: parseFloat(withdrawAmount),
     walletAddress: withdrawAddress.trim(),
     network: withdrawNetwork,
