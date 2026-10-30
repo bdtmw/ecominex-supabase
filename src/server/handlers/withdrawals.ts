@@ -6,6 +6,7 @@ import { toTransaction } from "../mappers";
 import { sendEmail, layout, p } from "../email";
 import { optionalEnv } from "../env";
 
+const MIN_WITHDRAWAL_USD = 50;
 const USER_COLS = "id, first_name, last_name, email";
 
 async function withUsers(rows: any[], withProcessor = false) {
@@ -20,6 +21,7 @@ export async function requestWithdrawal(req: NextRequest) {
   const { amount, walletAddress, network } = await readJson(req);
   if (!isPositiveNumber(amount) || !isStr(walletAddress) || !walletAddress.trim() || !isStr(network) || !network.trim())
     throw new HttpError(400, "Valid amount, wallet address, and network are required");
+  if (Number(amount) < MIN_WITHDRAWAL_USD) throw new HttpError(400, `Minimum withdrawal is $${MIN_WITHDRAWAL_USD}`);
 
   const { data, error } = await admin().rpc("fn_request_withdrawal", {
     p_user: me.id, p_amount: amount, p_wallet: walletAddress, p_network: network,
