@@ -131,7 +131,7 @@ const auth = useSelector((state: RootState) => state.auth);
   };
 
 const handleWithdrawrequest = async () => {
-   if (!withdrawAmount || parseFloat(withdrawAmount) < 59.2) {
+   if (!withdrawAmount || parseFloat(withdrawAmount) < 50) {
      toast.error("Minimun Amount is 50$");
      return;
    }
@@ -193,7 +193,7 @@ const handleWithdrawrequest = async () => {
 
   const handleWithdraw = () => {
     const amount = parseFloat(withdrawAmount);
-    if (!withdrawAmount || amount < 59.20) {
+    if (!withdrawAmount || amount < 50) {
       toast.error("Minimum withdrawal amount is $50.00");
       return;
     }

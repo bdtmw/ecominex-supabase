@@ -157,7 +157,7 @@ console.log(withdrawals)
   };
 
 const handleWithdrawrequest = async () => {
-  if (!withdrawAmount || parseFloat(withdrawAmount) < 59.2) {
+  if (!withdrawAmount || parseFloat(withdrawAmount) < 50) {
     toast.error("Minimun Amount is 50$");
     return;
   }
