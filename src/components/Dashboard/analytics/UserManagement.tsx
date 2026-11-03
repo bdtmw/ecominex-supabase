@@ -207,8 +207,6 @@ export default function UserManagement() {
                   {menuFor === u.id && (
                     <div role="menu" className={`absolute right-2 z-20 w-44 rounded-lg ${idx >= rows.length - 3 && rows.length > 4 ? "bottom-full mb-1" : "top-full mt-1"} overflow-hidden border border-white/10 bg-[#161616] text-left text-sm shadow-xl`}>
                       <Link role="menuitem" href={`/Dashboard/AllUser/${u.id}`} className="block px-3 py-2 text-gray-200 hover:bg-white/5">View profile</Link>
-                      <Link role="menuitem" href={`/Dashboard/Ledger?user=${u.id}`} className="block px-3 py-2 text-gray-200 hover:bg-white/5">View ledger</Link>
-                      <button role="menuitem" onClick={() => { setMenuFor(null); setBalanceUser(u); }} className="block w-full px-3 py-2 text-left text-gray-200 hover:bg-white/5">Add balance</button>
                       {u.role !== "admin" && <button role="menuitem" onClick={() => { setMenuFor(null); confirmDelete(u); }} className="block w-full px-3 py-2 text-left text-red-400 hover:bg-red-500/10">Delete user…</button>}
                     </div>
                   )}
