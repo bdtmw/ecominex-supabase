@@ -32,7 +32,7 @@ const TAGS: Record<string, { label: string; tone: string }> = {
 };
 
 const COLUMNS: { id: string; label: string; align?: "right"; sort?: string; hide?: string; w?: string }[] = [
-  { id: "user", label: "User", sort: "name", w: "w-[24%] min-w-[220px]" },
+  { id: "user", label: "User", sort: "name", w: "w-[30%] min-w-[200px]" },
   { id: "balance", label: "Balance", sort: "balance", align: "right" },
   { id: "deposited", label: "Deposited", sort: "deposited", align: "right", hide: "hidden lg:table-cell" },
   { id: "withdrawn", label: "Withdrawn", sort: "withdrawn", align: "right", hide: "hidden lg:table-cell" },
@@ -149,7 +149,7 @@ export default function UserManagement() {
       {error && <div role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
 
       <div className="relative max-h-[calc(100vh-200px)] overflow-y-auto overflow-x-hidden rounded-2xl bg-[#1e1e1e] [color-scheme:dark] max-md:overflow-x-auto" style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
-        <table className="w-full text-left text-sm max-md:min-w-[640px]">
+        <table className="w-full table-fixed text-left text-sm max-md:min-w-[720px]">
           <thead>
             <tr className="text-xs" style={{ color: VIZ.muted }}>
               {COLUMNS.map((c) => (
@@ -165,11 +165,11 @@ export default function UserManagement() {
           <tbody>
             {rows.map((u, idx) => (
               <tr key={u.id} className="cursor-pointer border-b transition hover:bg-white/[0.03]" style={{ borderColor: VIZ.grid }} onClick={() => router.push(`/Dashboard/AllUser/${u.id}`)}>
-                <td className="px-4 py-3">
+                <td className="overflow-hidden px-4 py-3">
                   <div className="flex items-center gap-3">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2a2a2a] text-sm font-semibold text-green-400" aria-hidden>{(u.firstName || u.email || "?")[0].toUpperCase()}</span>
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-white">{u.firstName} {u.lastName}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-white" title={`${u.firstName} ${u.lastName}`}>{u.firstName} {u.lastName}</p>
                       <p className="truncate text-xs" style={{ color: VIZ.textSecondary }}>{u.email}</p>
                       <p className="truncate text-[11px]" style={{ color: VIZ.muted }}>{u.country} · {u.phone}</p>
                       {u.tags?.length > 0 && (
@@ -180,7 +180,7 @@ export default function UserManagement() {
                     </div>
                   </div>
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
+                <td className="px-4 py-3 text-right tabular-nums">
                   <p className="font-medium text-white">{money(u.totalBalance)}</p>
                   {u.profitBalance > 0 && u.depositedBalance > 0 && <p className="text-[11px]" style={{ color: VIZ.muted }} title="Deposited funds + mining profit">{money(u.depositedBalance)} + {money(u.profitBalance)} profit</p>}
                   {u.pendingWithdrawal > 0 && <p className="text-[11px]" style={{ color: VIZ.warning }}>{money(u.pendingWithdrawal)} withdrawing</p>}
