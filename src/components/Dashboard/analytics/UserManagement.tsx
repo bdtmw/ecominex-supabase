@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, BookOpen, ChevronLeft, ChevronRight, Download, MoreVertical, Plus, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, BookOpen, ChevronLeft, ChevronRight, Download, Plus, Search, Trash2, X } from "lucide-react";
 import Swal from "sweetalert2";
 import { toast } from "sonner";
 import AddBalanceDialog from "./AddBalanceDialog";
@@ -62,7 +62,6 @@ export default function UserManagement() {
   const urlSearch = url.get("search");
 
   const [searchText, setSearchText] = useState(urlSearch);
-  const [menuFor, setMenuFor] = useState<string | null>(null);
   const [balanceUser, setBalanceUser] = useState<any | null>(null);
   const [deleteUser] = useDeleteUserMutation();
 
@@ -78,13 +77,6 @@ export default function UserManagement() {
   const { data, loading, error, refetch } = useAdminFetch<any>(`/api/v1/admin/users/overview?${qs}`);
   const rows: any[] = data?.rows || [];
   const counts = data?.segmentCounts || {};
-
-  useEffect(() => {
-    if (!menuFor) return;
-    const close = () => setMenuFor(null);
-    document.addEventListener("click", close);
-    return () => document.removeEventListener("click", close);
-  }, [menuFor]);
 
   const sortBy = (col?: string) => {
     if (!col) return;
@@ -163,7 +155,7 @@ export default function UserManagement() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((u, idx) => (
+            {rows.map((u) => (
               <tr key={u.id} className="cursor-pointer border-b transition hover:bg-white/[0.03]" style={{ borderColor: VIZ.grid }} onClick={() => router.push(`/Dashboard/AllUser/${u.id}`)}>
                 <td className="overflow-hidden px-4 py-3">
                   <div className="flex items-center gap-3">
@@ -202,14 +194,10 @@ export default function UserManagement() {
                   <div className="flex items-center justify-end gap-1">
                     <Link href={`/Dashboard/Ledger?user=${u.id}`} title="Open this user's ledger" aria-label={`Ledger of ${u.firstName} ${u.lastName}`} className="rounded-md p-2 text-green-400 hover:bg-green-500/10"><BookOpen className="h-4 w-4" aria-hidden /></Link>
                     <button onClick={() => setBalanceUser(u)} title="Add balance to this user" aria-label={`Add balance to ${u.firstName} ${u.lastName}`} className="rounded-md p-2 text-green-400 hover:bg-green-500/10"><Plus className="h-4 w-4" aria-hidden /></button>
-                    <button aria-label={`More actions for ${u.firstName} ${u.lastName}`} aria-haspopup="menu" aria-expanded={menuFor === u.id} onClick={(e) => { e.stopPropagation(); setMenuFor(menuFor === u.id ? null : u.id); }} className="rounded-md p-1.5 text-gray-300 hover:bg-white/10"><MoreVertical className="h-4 w-4" /></button>
+                    {u.role !== "admin"
+                      ? <button onClick={() => confirmDelete(u)} title="Delete this user" aria-label={`Delete ${u.firstName} ${u.lastName}`} className="rounded-md p-2 text-red-400 hover:bg-red-500/10"><Trash2 className="h-4 w-4" aria-hidden /></button>
+                      : <span className="inline-block w-8" aria-hidden />}
                   </div>
-                  {menuFor === u.id && (
-                    <div role="menu" className={`absolute right-2 z-20 w-44 rounded-lg ${idx >= rows.length - 3 && rows.length > 4 ? "bottom-full mb-1" : "top-full mt-1"} overflow-hidden border border-white/10 bg-[#161616] text-left text-sm shadow-xl`}>
-                      <Link role="menuitem" href={`/Dashboard/AllUser/${u.id}`} className="block px-3 py-2 text-gray-200 hover:bg-white/5">View profile</Link>
-                      {u.role !== "admin" && <button role="menuitem" onClick={() => { setMenuFor(null); confirmDelete(u); }} className="block w-full px-3 py-2 text-left text-red-400 hover:bg-red-500/10">Delete user…</button>}
-                    </div>
-                  )}
                 </td>
               </tr>
             ))}
