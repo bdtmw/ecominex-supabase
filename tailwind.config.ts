@@ -25,7 +25,13 @@ const config = {
         transparent: "transparent",
         white: "#FFFFFF",
         black: "#1C2434",
-        red: "#FB5454",
+        // keep `text-red` / `bg-red` working, but ALSO provide the shade scale: a bare string here used to wipe out
+        // every red-50 … red-950 class (text-red-400, bg-red-500/10 …), which then rendered with no colour at all
+        red: {
+          DEFAULT: "#FB5454",
+          50: "#fef2f2", 100: "#fee2e2", 200: "#fecaca", 300: "#fca5a5", 400: "#f87171", 500: "#ef4444",
+          600: "#dc2626", 700: "#b91c1c", 800: "#991b1b", 900: "#7f1d1d", 950: "#450a0a",
+        },
         "black-2": "#010101",
         body: "#64748B",
         fullBlack: "#000000	",
