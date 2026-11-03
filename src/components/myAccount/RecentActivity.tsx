@@ -30,7 +30,7 @@ export default function RecentActivity({ limit = 8, bordered = false }: { limit?
             <p className={`font-bold ${r.status === "rejected" ? "text-slate-500 line-through" : r.direction === "credit" ? "text-emerald-400" : "text-white"}`}>
               {r.direction === "credit" ? "+" : "−"}{money2(r.amount)}
             </p>
-            {(r.status === "pending" || r.status === "rejected") && <p className={`text-xs ${r.status === "pending" ? "text-yellow-400" : "text-[#ff0000]"}`}>{r.status}</p>}
+            {(r.status === "pending" || r.status === "rejected") && <p className={`text-xs ${r.status === "pending" ? "text-yellow-400" : "text-red-400"}`}>{r.status}</p>}
           </div>
         </div>
       ))}

@@ -259,7 +259,7 @@ const UserDetailsPage = () => {
                           className={`px-2 py-1 rounded-full text-[13px] ${
                             (item.status ?? "").toLowerCase() === "active"
                               ? "bg-green-800/40 text-green-400"
-                              : "bg-[#66000095] text-red-400"
+                              : "bg-red-500/20 text-red-300"
                           }`}
                         >
                           {item.status ?? "-"}
@@ -374,7 +374,7 @@ const UserDetailsPage = () => {
                                 ? "bg-green-800/40 text-green-400"
                                 : r.status === "pending"
                                 ? "bg-yellow-800/40 text-yellow-400"
-                                : "bg-[#66000095] text-red-400"
+                                : "bg-red-500/20 text-red-300"
                             }`}
                           >
                             {r.status}
