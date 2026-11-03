@@ -1,5 +1,5 @@
 import nodemailer, { type Transporter } from "nodemailer";
-import { env, optionalEnv } from "./env";
+import { appUrl, env, optionalEnv } from "./env";
 import { escapeHtml } from "./http";
 
 let transporter: Transporter | null = null;
@@ -33,17 +33,16 @@ const FONT = "Poppins,system-ui,-apple-system,'Segoe UI',Arial,sans-serif";
 /** Wraps content in the branded Ecomine X card used by all transactional emails. */
 export function layout(title: string, body: string): string {
   return `
-<div style="margin:0;padding:0;background-color:#0b4a24;background-image:linear-gradient(180deg,#1dae52 0%,#08381a 100%);font-family:${FONT};color:#e5e7eb;">
-  <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
-    <div style="text-align:center;margin-bottom:22px;">
-      <span style="font-size:30px;font-weight:700;color:#ffffff;letter-spacing:0.2px;vertical-align:middle;">Ecomine</span>
-      <span style="display:inline-block;width:30px;height:30px;line-height:30px;border-radius:50%;background:#ffffff;color:#16a34a;font-size:17px;font-weight:800;text-align:center;vertical-align:middle;margin-left:6px;">X</span>
-    </div>
-    <div style="background:#1b1b1b;border-radius:20px;border:1px solid rgba(255,255,255,0.08);padding:30px 26px 24px;box-shadow:0 12px 32px rgba(0,0,0,0.25);">
+<div style="margin:0;padding:0;background-color:#073d1d;background-image:linear-gradient(180deg,#0a4f26 0%,#073d1d 50%,#04200f 100%);font-family:${FONT};color:#e5e7eb;">
+  <div style="max-width:600px;margin:0 auto;padding:36px 16px;">
+    <div style="background:#1b1b1b;border-radius:20px;border:1px solid rgba(255,255,255,0.08);padding:0 26px 24px;box-shadow:0 12px 32px rgba(0,0,0,0.35);">
+      <div style="text-align:center;padding:22px 0 14px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:24px;">
+        <a href="${escapeHtml(appUrl())}" style="text-decoration:none;"><img src="${escapeHtml(appUrl())}/Logo.png" alt="Ecomine X" width="190" style="display:inline-block;border:0;outline:none;width:190px;max-width:70%;height:auto;font-size:26px;font-weight:700;color:#ffffff;" /></a>
+      </div>
       <h2 style="margin:0 0 16px 0;font-size:22px;font-weight:700;color:#ffffff;">${escapeHtml(title)}</h2>
       ${body}
     </div>
-    <p style="margin:18px 0 0 0;font-size:12px;line-height:1.6;color:rgba(255,255,255,0.75);text-align:center;">© ${new Date().getFullYear()} Ecomine X. All rights reserved.<br>This is an automated message from a no-reply address. Need help? Write to ${escapeHtml(replyTo())}.</p>
+    <p style="margin:18px 0 0 0;font-size:12px;line-height:1.6;color:rgba(255,255,255,0.7);text-align:center;">© ${new Date().getFullYear()} Ecomine X. All rights reserved.<br>This is an automated message from a no-reply address. Need help? Write to ${escapeHtml(replyTo())}.</p>
   </div>
 </div>`;
 }
