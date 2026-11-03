@@ -101,6 +101,11 @@ node --env-file=.env.local scripts/migrate-from-mongo.mjs --commit   # 2) writes
 `MAIL_EMAIL`/`MAIL_PASSWORD` (Gmail app password) or any SMTP server (`SMTP_*`). Used for signup OTP, 2FA login codes,
 password reset, machine assignment and withdrawal notifications.
 
+Every email is sent as **Ecomine X &lt;no-reply@ecominex.net&gt;** with replies going to **info@ecominex.net**
+(`MAIL_FROM_NAME`, `MAIL_FROM`, `MAIL_REPLY_TO` change these). The sending domain must be verified with the mail provider
+(SPF/DKIM); a plain Gmail account will silently replace the From address with the Gmail account itself, so for a
+branded sender use an SMTP service with `ecominex.net` verified (e.g. Zoho, Brevo, Resend, SES).
+
 ## Known limitations
 * API handlers are verified by build + typecheck and by the SQL tests, but have **not** been exercised against a live
   Supabase project in CI — run through signup, login, deposit, purchase and withdrawal once on a staging project.
