@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowDownLeft, ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock, Download, Info, Search, X, XCircle } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Check, ChevronLeft, ChevronRight, Clock, Download, Info, Search, SlidersHorizontal, X, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { VIZ, money, money2, num } from "./viz";
 import { downloadCsv, useAdminFetch } from "./useAdminFetch";
@@ -76,17 +76,17 @@ export default function Ledger() {
   };
 
   const fmtNet = (n: number) => `${n < 0 ? "−" : n > 0 ? "+" : ""}${money(Math.abs(n))}`;
-  const sel = "rounded-lg border border-white/10 bg-[#1e1e1e] px-3 py-2 text-sm text-white outline-none focus:border-green-500/60";
+  const sel = "rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-green-500/60";
 
   return (
     <div className="space-y-4">
       {/* one toolbar: find, narrow down, export */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 rounded-xl bg-[#1e1e1e] p-2">
         <label className="relative min-w-[200px] flex-1 sm:max-w-xs">
           <span className="sr-only">Search the ledger</span>
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden />
           <input value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Search name, email, wallet…"
-            className="w-full rounded-lg border border-white/10 bg-[#1e1e1e] py-2 pl-9 pr-8 text-sm text-white placeholder-gray-500 outline-none focus:border-green-500/60" />
+            className="w-full rounded-lg border border-white/10 bg-black/30 py-2 pl-9 pr-8 text-sm text-white placeholder-gray-500 outline-none focus:border-green-500/60" />
           {searchText && <button aria-label="Clear search" onClick={() => setSearchText("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"><X className="h-4 w-4" /></button>}
         </label>
         <select aria-label="Type" value={typeValue} onChange={(e) => url.set({ category: e.target.value })} className={sel}>
@@ -98,7 +98,7 @@ export default function Ledger() {
           {STATUSES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
         </select>
         <RangePicker allowAll range={range} from={from} to={to} onChange={(r) => url.set({ range: r.range === defaultRange ? "" : r.range, from: r.from, to: r.to })} />
-        <button onClick={() => setShowMore((v) => !v)} aria-expanded={showMore} className="px-1 text-sm text-gray-400 hover:text-white">{showMore ? "Hide amount" : "Amount…"}</button>
+        <button onClick={() => setShowMore((v) => !v)} aria-expanded={showMore} className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition ${showMore || min || max ? "border-green-500/50 text-green-400" : "border-white/10 text-gray-300 hover:text-white"}`}><SlidersHorizontal className="h-4 w-4" aria-hidden />Amount</button>
         <button onClick={exportCsv} className="ml-auto inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-gray-200 transition hover:border-green-500/50 hover:text-white"><Download className="h-4 w-4" aria-hidden />Export CSV</button>
       </div>
 
@@ -125,24 +125,26 @@ export default function Ledger() {
 
       {error && <div role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
 
-      {/* one slim summary instead of four big tiles */}
-      <dl className="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-2xl bg-[#1e1e1e] px-4 py-3" style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
-        {[
-          { label: "Money in", value: t ? money(t.credits) : "—", color: VIZ.good },
-          { label: "Money out", value: t ? money(t.debits) : "—" },
-          { label: "Net", value: t ? fmtNet(t.net) : "—" },
-          { label: "On hold (pending withdrawals)", value: t ? money(t.pendingHold) : "—", color: t?.pendingHold > 0 ? VIZ.warning : undefined },
-        ].map((x) => (
-          <div key={x.label} data-stat>
-            <dt className="text-xs" style={{ color: VIZ.muted }}>{x.label}</dt>
-            <dd className="text-lg font-semibold tabular-nums" style={{ color: x.color || VIZ.text }}>{x.value}</dd>
-          </div>
-        ))}
-        <p className="ml-auto flex items-center gap-1.5 text-xs" style={{ color: VIZ.muted }}>
+      {/* four compact figures + a one-line note */}
+      <div style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
+        <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[
+            { label: "Money in", value: t ? money(t.credits) : "—", color: VIZ.good, hint: "Deposits, profit, sales and bonuses credited" },
+            { label: "Money out", value: t ? money(t.debits) : "—", hint: "Withdrawals paid and purchases" },
+            { label: "Net", value: t ? fmtNet(t.net) : "—", color: t ? (t.net > 0 ? VIZ.good : t.net < 0 ? "#f87171" : undefined) : undefined, hint: "Money in minus money out" },
+            { label: "On hold", value: t ? money(t.pendingHold) : "—", color: t?.pendingHold > 0 ? VIZ.warning : undefined, hint: "Pending withdrawals waiting for approval" },
+          ].map((x) => (
+            <div key={x.label} data-stat title={x.hint} className="rounded-xl bg-[#1e1e1e] px-4 py-3">
+              <dt className="text-xs" style={{ color: VIZ.muted }}>{x.label}</dt>
+              <dd className="mt-0.5 text-xl font-semibold tabular-nums" style={{ color: x.color || VIZ.text }}>{x.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-2 flex items-center justify-end gap-1.5 text-xs" style={{ color: VIZ.muted }}>
           {data ? `${num(data.total)} entr${data.total === 1 ? "y" : "ies"}` : ""}{data?.startsAt ? ` · from ${new Date(data.startsAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}` : ""}
           <span title="Totals count only entries that moved money. A pending withdrawal is a hold and a rejected one has no effect. Times are in your local time."><Info className="h-3.5 w-3.5" aria-label="How totals are counted" /></span>
         </p>
-      </dl>
+      </div>
 
       <div className="relative max-h-[calc(100vh-230px)] min-h-[320px] overflow-y-auto overflow-x-hidden rounded-2xl bg-[#1e1e1e] [color-scheme:dark] max-md:overflow-x-auto" style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
         <table className="w-full text-left text-sm max-md:min-w-[700px]">
