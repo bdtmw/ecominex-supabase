@@ -244,6 +244,17 @@ await mob.page.goto(`${BASE}/Dashboard/`); await mob.page.waitForTimeout(2000);
 await mob.page.screenshot({ path: `${OUT}/5-overview-mobile.png`, fullPage: true });
 await mob.ctx.close();
 
+// ---- single-user page: one page, no tabs, exact money figures
+const su = u0.rows.find((r) => r.totalDeposited > 0) || u0.rows[0];
+await page.goto(`${BASE}/Dashboard/AllUser/${su.id}`);
+await page.getByText("Total Invested").first().waitFor({ timeout: 20000 }).catch(async () => { await page.screenshot({ path: `${OUT}/6-user-page-FAIL.png`, fullPage: true }); console.log("URL", page.url(), (await page.evaluate(() => document.body.innerText)).slice(0, 400)); });
+await page.waitForFunction((v) => document.body.innerText.includes(v), money(su.totalDeposited), { timeout: 15000 }).catch(() => {});
+const bodyTxt = await page.evaluate(() => document.body.innerText);
+check("user page: 'Total Invested' shows the exact deposited amount from SQL", bodyTxt.includes(money(su.totalDeposited)), money(su.totalDeposited));
+check("user page: no Overview/Machines/Transactions tabs", (await page.getByRole("tab").count()) === 0);
+check("user page: shows profile, machines and recent activity on one page", ["Profile Details", "Machines", "Recent activity"].every((t) => bodyTxt.includes(t)));
+await page.screenshot({ path: `${OUT}/6-user-page.png`, fullPage: true });
+
 check("no uncaught page errors in any of the above", errors.length === 0, errors.slice(0, 2).join(" | "));
 
 await browser.close(); await cleanup();

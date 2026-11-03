@@ -4,20 +4,15 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import {
-  fetchUserMachines,
-  fetchUserTotalProfit,
-} from "@/lib/feature/userMachine/usermachineApi";
+import { fetchUserMachines, fetchUserTotalProfit } from "@/lib/feature/userMachine/usermachineApi";
 import { AppDispatch } from "@/lib/store/store";
 import { useUsers } from "@/hooks/Userdetail";
 import { getUserBalance } from "@/lib/feature/userMachine/balanceSlice";
 import { getUserShareDetails } from "@/lib/feature/shareMachine/shareMachineSlice";
-import { fetchUserWithdrawals } from "@/lib/feature/withdraw/withdrawalSlice";
 import DashboardLayout from "@/components/Dashboard/DasboardLayout/DasboardLayout";
 import DashboardHeader from "@/components/Dashboard/DashboardHeader/DashboardHeader";
 import Image from "next/image";
@@ -26,164 +21,106 @@ import Link from "next/link";
 import ProtectedRoutes from "@/components/config/protectedRoute/ProtectedRoutes";
 import { useAdminFetch } from "@/components/Dashboard/analytics/useAdminFetch";
 
-interface RootState {
-  userMachine: {
-    userMachines: any[];
-    userProfit: { totalProfit: number };
-    isLoading: boolean;
-  };
-  transactions: {
-    transactions: any[];
-    totalTransactions: number;
-    isLoading: boolean;
-  };
-  balance: {
-    userBalance: { balances: { total: number } };
-    isLoading: boolean;
-  };
-  withdrawal: {
-    withdrawals: any[];
-    pendingWithdrawals: any[];
-    allWithdrawals: any[];
-    stats: any;
-    pagination: {
-      currentPage: number;
-      totalPages: number;
-      totalWithdrawals: number;
-    };
-    isLoading: boolean;
-    error: string | null;
-  };
-  shareMachine: {
-    specialMachine: any | null;
-    userShares: {
-      shares: any[];
-      summary: {
-        totalShares: number;
-        totalInvestment: number;
-        expectedMonthlyProfit: number;
-        totalProfitEarned: number;
-      } | null;
-    };
-    loading: boolean;
-    error: string | null;
-    purchaseSuccess: boolean;
-    saleSuccess: boolean;
-    updateSuccess: boolean;
-  };
+// exact figures, never abbreviated (1,150.00 not 1.1K)
+const usd = (n?: number) =>
+  "$" + Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtDate = (d?: string) =>
+  d ? new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "N/A";
+const fmtDateTime = (d?: string) =>
+  d
+    ? new Date(d).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+    : "Never";
+
+const TAGS: Record<string, { label: string; cls: string }> = {
+  new: { label: "New", cls: "bg-blue-900/40 text-blue-300" },
+  pending_withdrawal: { label: "Pending withdrawal", cls: "bg-yellow-900/40 text-yellow-300" },
+  dormant: { label: "Dormant", cls: "bg-zinc-700/60 text-zinc-300" },
+  never_deposited: { label: "Never deposited", cls: "bg-red-900/40 text-red-300" },
+};
+
+function Field({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[13px] text-gray-400">{label}</p>
+      <div className="border border-zinc-600 rounded-[6px] px-4 min-h-[46px] flex items-center text-[14px] font-medium text-[#f9f9f9] break-all">
+        {value || "N/A"}
+      </div>
+    </div>
+  );
 }
+
+function Stat({ title, value, note, accent }: { title: string; value: string; note?: string; accent?: boolean }) {
+  return (
+    <div
+      className={`px-5 py-5 rounded-[20px] flex flex-col gap-2 ${
+        accent ? "bg-gradient-to-b from-[#1dae52] to-[#08381a]" : "bg-[#1b1b1b]"
+      }`}
+    >
+      <h3 className="text-[14px] font-medium text-gray-100">{title}</h3>
+      <p className="text-[30px] leading-[34px] font-semibold text-white break-all">{value}</p>
+      {note && <span className="text-[12.5px] text-gray-300">{note}</span>}
+    </div>
+  );
+}
+
+const Section = ({ title, right, children }: any) => (
+  <section className="bg-[#1b1b1b] mx-2 mt-5 px-5 py-6 rounded-[10px]">
+    <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
+      <h2 className="text-white text-[21px] font-medium">{title}</h2>
+      {right}
+    </div>
+    {children}
+  </section>
+);
+
+const Empty = ({ cols, children }: any) => (
+  <tr>
+    <td colSpan={cols} className="py-8 text-center text-gray-300">
+      {children}
+    </td>
+  </tr>
+);
 
 const UserDetailsPage = () => {
   const { userId } = useParams();
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
 
-  const shareMachineState = useSelector((state: RootState) => state.shareMachine);
+  const shareMachineState = useSelector((state: any) => state.shareMachine);
   const userShares = shareMachineState?.userShares?.shares || [];
   const sharesSummary = shareMachineState?.userShares?.summary || null;
+  const userMachines = useSelector((state: any) => state.userMachine)?.userMachines || [];
 
-  const [activeTab, setActiveTab] = useState("overview");
-  const [dataFetched, setDataFetched] = useState(false);
   const [localLoading, setLocalLoading] = useState(true);
-
-  const userMachineState = useSelector((state: RootState) => state.userMachine);
-  const transactionsState = useSelector((state: RootState) => state.transactions);
-  const balanceState = useSelector((state: RootState) => state.balance);
-  const withdrawalState = useSelector((state: RootState) => state.withdrawal);
-  const withdrawals = withdrawalState?.withdrawals || [];
-
-  const userMachines = userMachineState?.userMachines || [];
-  const userProfit = userMachineState?.userProfit || { totalProfit: 0 };
-  const transactions = transactionsState || {
-    transactions: [],
-    totalTransactions: 0,
-  };
-  const isLoading =
-    userMachineState?.isLoading ||
-    transactionsState?.isLoading ||
-    balanceState?.isLoading ||
-    false;
-  const userBalance = balanceState?.userBalance?.balances?.total || 0;
 
   const { users } = useUsers();
   const currentUser = users?.find((user) => user._id === userId) || null;
 
-  // exact money figures come from the same source as the Users table (full, unrounded, not limited by the ledger start date)
-  const overviewUrl = currentUser?.email ? `/api/v1/admin/users/overview?search=${encodeURIComponent(currentUser.email)}&limit=5` : null;
+  // money + profile figures come from the same source as the Users table (exact, not limited by the ledger start date)
+  const overviewUrl = currentUser?.email
+    ? `/api/v1/admin/users/overview?search=${encodeURIComponent(currentUser.email)}&limit=5`
+    : null;
   const { data: overview } = useAdminFetch<any>(overviewUrl);
   const money = overview?.rows?.find((r: any) => r.id === userId) || null;
-  const usd = (n?: number) => "$" + Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const { data: recent, loading: recentLoading } = useAdminFetch<any>(
+    userId ? `/api/v1/admin/ledger?user=${userId}&limit=10` : null,
+  );
 
   useEffect(() => {
-    if (userId && currentUser?.email) {
-      setLocalLoading(true);
+    if (!userId) return;
+    setLocalLoading(true);
+    Promise.all([
+      dispatch(fetchUserMachines(userId)),
+      dispatch(fetchUserTotalProfit(userId)),
+      dispatch(getUserBalance(userId)),
+      dispatch(getUserShareDetails(userId as string)),
+    ])
+      .catch((e) => console.error("Error fetching user data:", e))
+      .finally(() => setLocalLoading(false));
+  }, [dispatch, userId]);
 
-      const fetchPromises = [
-        dispatch(fetchUserMachines(userId)),
-        dispatch(fetchUserTotalProfit(userId)),
-        dispatch(
-          fetchUserWithdrawals({
-            email: currentUser.email,
-            page: 1,
-            limit: 10,
-          }),
-        ),
-        dispatch(getUserBalance(userId)),
-        dispatch(getUserShareDetails(userId as string)),
-      ];
-
-      Promise.all(fetchPromises)
-        .then(() => {
-          setDataFetched(true);
-          setLocalLoading(false);
-        })
-        .catch((error) => {
-          console.error("Error fetching user data:", error);
-          setLocalLoading(false);
-        });
-    }
-  }, [dispatch, userId, currentUser]);
-
-  const formatDate = (date) => {
-    if (!date) return "N/A";
-    return new Date(date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  // exact figures, never abbreviated (1,150.00 not 1.1K)
-  function formatAmount(amount?: number) {
-    return Number(amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-
-
-  const stats = [
-    {
-      title: "Total Machines",
-      value: (userMachines?.length || 0) + (userShares?.length || 0),
-      note: `${userMachines?.length || 0} Regular · ${userShares?.length || 0} Share-Based`,
-      gradient: true,
-      navigate: "",
-    },
-    {
-      title: "Total Balance",
-      value: formatAmount(userBalance || userProfit?.totalProfit || 0),
-      note: "Count of all Balance ",
-      gradient: false,
-      navigate: "",
-    },
-    {
-      title: "Total Invested",
-      value: money ? usd(money.totalDeposited) : "…",
-      note: money ? `Total deposited · Withdrawn ${usd(money.totalWithdrawn)} · Balance ${usd(money.totalBalance)}` : "Total deposited by this user",
-      gradient: false,
-      navigate: "",
-    },
-  ];
-
-  if (localLoading || isLoading) {
+  if (localLoading && !currentUser) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-transparent">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-green-500"></div>
@@ -191,13 +128,15 @@ const UserDetailsPage = () => {
     );
   }
 
+  const fullName = `${currentUser?.firstName || ""} ${currentUser?.lastName || ""}`.trim() || "User";
+  const regularCount = userMachines.length;
+  const shareCount = userShares.length;
+  const tags: string[] = money?.tags || [];
+
   return (
     <ProtectedRoutes>
       <DashboardLayout>
-        <DashboardHeader
-          title="User Management"
-          desc="Manage and track all user activity with real-time updates and organized details."
-        />
+        <DashboardHeader title="User Management" desc="Everything about this user in one place." />
         <Button
           onClick={() => router.back()}
           variant="ghost"
@@ -207,344 +146,249 @@ const UserDetailsPage = () => {
           Back to Users
         </Button>
 
-        <section className="bg-[#1b1b1b] px-5 mx-2 pb-8 pt-3 rounded-[10px]">
-          {/* TOP USER SECTION */}
-          <div className="flex gap-6 items-center border-b-[1px] pb-7 border-[#969696a0]">
-            <Image
-              src={"/userdash.jpg"}
-              width={110}
-              height={110}
-              alt="User"
-              className="rounded-full"
-            />
-            <div>
-              <h1 className="text-white text-3xl font-bold">
-                {currentUser?.firstName} {currentUser?.lastName || ""}
-              </h1>
-              <p className="text-gray-300 mt-1 font-[500]">
-                {currentUser?.email || "N/A"}
+        {/* ============ HEADER ============ */}
+        <section className="bg-[#1b1b1b] px-5 mx-2 py-6 rounded-[10px]">
+          <div className="flex gap-5 items-center flex-wrap">
+            <Image src={"/userdash.jpg"} width={90} height={90} alt="User" className="rounded-full" />
+            <div className="flex-1 min-w-[220px]">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-white text-3xl font-bold">{fullName}</h1>
+                {money?.role === "admin" && (
+                  <span className="text-xs px-2 py-1 rounded-full bg-purple-900/40 text-purple-300">Admin</span>
+                )}
+                {tags
+                  .filter((t) => TAGS[t])
+                  .map((t) => (
+                    <span key={t} className={`text-xs px-2 py-1 rounded-full ${TAGS[t].cls}`}>
+                      {TAGS[t].label}
+                    </span>
+                  ))}
+              </div>
+              <p className="text-gray-300 mt-1 font-[500]">{currentUser?.email || "N/A"}</p>
+              <p className="text-gray-400 mt-1 text-sm">
+                Joined {fmtDate(currentUser?.createdAt)} · Last activity {fmtDateTime(money?.lastActivityAt)}
               </p>
-              <Link
-                href={`/Dashboard/Ledger?user=${userId}`}
-                className="mt-3 inline-flex items-center gap-2 rounded-lg border border-green-500/50 px-3 py-1.5 text-sm font-medium text-green-400 transition hover:bg-green-500/10"
-              >
-                Open full ledger
-              </Link>
             </div>
-          </div>
-
-          {/* Profile Details */}
-          <div className="px-1 mt-8">
-            <h2 className="text-[21px] font-[500] text-white">Profile Details</h2>
-            <div className="space-y-5 pt-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-gray-100 font-[500] tracking-[0.3px] text-[15px]">
-                    Full Name
-                  </label>
-                  <div className="border-zinc-400 border rounded-[5px] px-4 h-[50px] font-[500] bg-transparent text-[#f9f9f9] text-[14px] flex items-center">
-                    {currentUser?.firstName} {currentUser?.lastName}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-gray-100 font-[500] tracking-[0.3px] text-[15px]">
-                    Created At
-                  </label>
-                  <div className="border-zinc-400 border rounded-[5px] px-4 h-[50px] font-[500] bg-transparent text-[#f9f9f9] text-[14px] flex items-center">
-                    {formatDate(currentUser?.createdAt)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-gray-100 font-[500] tracking-[0.3px] text-[15px]">
-                  Email
-                </label>
-                <div className="border-zinc-400 border rounded-[5px] px-4 h-[50px] font-[500] bg-transparent text-[#f9f9f9] text-[14px] flex items-center">
-                  {currentUser?.email}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-gray-100 font-[500] tracking-[0.3px] text-[15px]">
-                    Country
-                  </label>
-                  <div className="border-zinc-400 border rounded-[5px] px-4 h-[50px] font-[500] bg-transparent text-[#f9f9f9] text-[14px] flex items-center">
-                    {currentUser?.country || "N/A"}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-gray-100 font-[500] tracking-[0.3px] text-[15px]">
-                    Phone Number
-                  </label>
-                  <div className="border-zinc-400 border rounded-[5px] px-4 h-[50px] font-[500] bg-transparent text-[#f9f9f9] text-[14px] flex items-center">
-                    {currentUser?.phoneNumber}
-                  </div>
-                </div>
-              </div>
-
-              <ToastContainer />
-            </div>
+            <Link
+              href={`/Dashboard/Ledger?user=${userId}`}
+              className="inline-flex items-center gap-2 rounded-lg border border-green-500/50 px-4 py-2 text-sm font-medium text-green-400 transition hover:bg-green-500/10"
+            >
+              Open full ledger
+            </Link>
           </div>
         </section>
 
-        <div>
-          <Tabs defaultValue="assign" className="w-full mt-5">
-            <TabsList className="grid grid-cols-2 mb-8 gap-10 w-[280px] bg-transparent text-white text-[15.5px]">
-              <TabsTrigger value="assign">Overview</TabsTrigger>
-              <TabsTrigger value="assigned">Machines</TabsTrigger>
-            </TabsList>
+        {/* ============ MONEY ============ */}
+        <section className="mx-2 mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Stat
+            accent
+            title="Total Invested"
+            value={money ? usd(money.totalDeposited) : "…"}
+            note="Total deposited by this user"
+          />
+          <Stat
+            title="Current Balance"
+            value={money ? usd(money.totalBalance) : "…"}
+            note={money ? `Deposited ${usd(money.depositedBalance)} · Profit ${usd(money.profitBalance)}` : undefined}
+          />
+          <Stat title="Total Withdrawn" value={money ? usd(money.totalWithdrawn) : "…"} note="Paid out to the user" />
+          <Stat
+            title="Pending Withdrawal"
+            value={money ? usd(money.pendingWithdrawal) : "…"}
+            note={Number(money?.pendingWithdrawal) > 0 ? "Waiting for admin review" : "Nothing waiting"}
+          />
+        </section>
 
-            {/* ============ TAB 1 — OVERVIEW ============ */}
-            <TabsContent value="assign">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {stats.map((item, index) => (
-                  <div
-                    key={index}
-                    className={`relative px-5 py-[26px] rounded-[25px] shadow-sm flex flex-col gap-4.5 justify-between ${
-                      item.gradient
-                        ? "bg-gradient-to-b from-[#1dae52] to-[#08381a] border-none"
-                        : "bg-[#1b1b1b] "
-                    }`}
-                  >
-                    <Link className="absolute right-0 top-0" href={item.navigate}>
-                      <div
-                        className={`absolute top-3 p-1.5 right-3 text-lg opacity-100 border-[1.5px] rounded-full ${
-                          item.gradient ? "!bg-[#fff] " : "bg-transparent"
-                        } border-gray-200`}
-                      >
-                        <ArrowUpRight
-                          className={`size-5.5 ${
-                            item.gradient ? "text-[#000]" : "text-gray-200"
+        {/* ============ PROFILE ============ */}
+        <Section title="Profile Details">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Field label="Full Name" value={fullName} />
+            <Field label="Email" value={currentUser?.email} />
+            <Field label="Phone Number" value={currentUser?.phoneNumber} />
+            <Field label="Country" value={currentUser?.country} />
+            <Field label="Joined" value={fmtDate(currentUser?.createdAt)} />
+            <Field label="Last Activity" value={fmtDateTime(money?.lastActivityAt)} />
+            <Field label="Role" value={money?.role === "admin" ? "Admin" : "User"} />
+            <Field label="Two-factor login" value={money ? (money.twoFactor ? "Enabled" : "Off") : ""} />
+            <Field label="Referrals made" value={money ? String(money.referrals ?? 0) : ""} />
+            <Field label="Referral code" value={currentUser?.referralCode} />
+          </div>
+          <ToastContainer />
+        </Section>
+
+        {/* ============ MACHINES ============ */}
+        <Section
+          title="Machines"
+          right={
+            <span className="text-sm text-gray-300">
+              {regularCount + shareCount} total · {regularCount} regular · {shareCount} share-based
+            </span>
+          }
+        >
+          <div className="overflow-x-auto mb-10">
+            <h3 className="text-white text-lg font-semibold mb-3">Assigned machines</h3>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-gray-200 border-b border-[#ffffff65]">
+                  <th className="py-3 text-left font-medium">Machine</th>
+                  <th className="py-3 text-left font-medium">Assigned</th>
+                  <th className="py-3 text-center font-medium">Profit so far</th>
+                  <th className="py-3 text-center font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {localLoading ? (
+                  <Empty cols={4}>Loading...</Empty>
+                ) : userMachines.length === 0 ? (
+                  <Empty cols={4}>No regular machines.</Empty>
+                ) : (
+                  userMachines.map((item) => (
+                    <tr key={item._id} className="border-b border-[#ffffff30] hover:bg-[#0f0f0f78] duration-300">
+                      <td className="py-3 text-white">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-[#2a2a2a] flex items-center justify-center text-green-400">
+                            {(item.machine?.machineName || "U").charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-medium">{item.machine?.machineName || "N/A"}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 text-gray-200">{fmtDate(item.assignedDate)}</td>
+                      <td className="py-3 text-center font-semibold text-white">{usd(item.monthlyProfitAccumulated)}</td>
+                      <td className="py-3 text-center">
+                        <span
+                          className={`px-2 py-1 rounded-full text-[13px] ${
+                            (item.status ?? "").toLowerCase() === "active"
+                              ? "bg-green-800/40 text-green-400"
+                              : "bg-[#66000095] text-red-400"
                           }`}
-                        />
-                      </div>
-                    </Link>
+                        >
+                          {item.status ?? "-"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
-                    <h3 className="text-[15px] font-medium text-gray-100">
-                      {item.title}
-                    </h3>
-                    <p className="text-[52px] leading-[55px] font-medium text-gray-200">
-                      {item.value}
-                    </p>
-                    <span
-                      className={`text-[12.5px] ${
-                        item.gradient ? "text-gray-200" : "text-gray-300"
-                      }`}
-                    >
-                      {item.note}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
+          <div className="overflow-x-auto">
+            <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+              <h3 className="text-white text-lg font-semibold">Share-based machines</h3>
+              {sharesSummary && (
+                <div className="flex items-center gap-2 flex-wrap text-[13px]">
+                  <span className="bg-[#2a2a2a] text-gray-300 px-3 py-1 rounded-full">
+                    Shares: <b className="text-white">{sharesSummary.totalShares}</b>
+                  </span>
+                  <span className="bg-[#2a2a2a] text-gray-300 px-3 py-1 rounded-full">
+                    Invested: <b className="text-green-400">{usd(sharesSummary.totalInvestment)}</b>
+                  </span>
+                  <span className="bg-[#2a2a2a] text-gray-300 px-3 py-1 rounded-full">
+                    Monthly: <b className="text-green-400">{usd(sharesSummary.expectedMonthlyProfit)}</b>
+                  </span>
+                  <span className="bg-[#2a2a2a] text-gray-300 px-3 py-1 rounded-full">
+                    Earned: <b className="text-yellow-400">{usd(sharesSummary.totalProfitEarned)}</b>
+                  </span>
+                </div>
+              )}
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-gray-200 border-b border-[#ffffff65]">
+                  <th className="py-3 text-left font-medium">Machine</th>
+                  <th className="py-3 text-left font-medium">Purchased</th>
+                  <th className="py-3 text-center font-medium">Shares</th>
+                  <th className="py-3 text-center font-medium">Invested</th>
+                  <th className="py-3 text-center font-medium">Monthly profit</th>
+                  <th className="py-3 text-center font-medium">Earned</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shareMachineState?.loading ? (
+                  <Empty cols={6}>Loading shares...</Empty>
+                ) : userShares.length === 0 ? (
+                  <Empty cols={6}>No share-based machines.</Empty>
+                ) : (
+                  userShares.map((share) => (
+                    <tr key={share.id} className="border-b border-[#ffffff30] hover:bg-[#0f0f0f78] duration-300">
+                      <td className="py-3 text-white font-medium">{share.machineName || "N/A"}</td>
+                      <td className="py-3 text-gray-200">{fmtDate(share.purchaseDate)}</td>
+                      <td className="py-3 text-center text-white font-semibold">{share.numberOfShares}</td>
+                      <td className="py-3 text-center text-white">{usd(share.totalInvestment)}</td>
+                      <td className="py-3 text-center text-green-400">
+                        {usd((share.profitPerShare || 0) * (share.numberOfShares || 0))}
+                      </td>
+                      <td className="py-3 text-center text-yellow-400">{usd(share.totalProfitEarned)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Section>
 
-            {/* ============ TAB 2 — MACHINES ============ */}
-            <TabsContent value="assigned">
-              <div className="bg-[#1b1b1b] px-6 py-6 rounded-md">
-                {/* ====== REGULAR MACHINES TABLE ====== */}
-                <div className="mb-10">
-                  <h1 className="text-white text-[25px] font-semibold mb-5">
-                    Assigned Machines
-                  </h1>
-
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-gray-200 border-b border-[#ffffff65] text-[16px]">
-                        <th className="py-3 text-left font-medium">Machine Name</th>
-                        <th className="py-3 text-left font-medium">Assigned Date</th>
-                        <th className="py-3 text-center font-medium">Current Profit</th>
-                        <th className="py-3 text-center font-medium">Status</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {isLoading ? (
-                        <tr>
-                          <td colSpan={4} className="py-8 text-center text-gray-300">
-                            Loading...
-                          </td>
-                        </tr>
-                      ) : userMachines.length === 0 ? (
-                        <tr>
-                          <td colSpan={4} className="py-8 text-center text-gray-300">
-                            No machines found.
-                          </td>
-                        </tr>
-                      ) : (
-                        userMachines.map((item) => (
-                          <tr
-                            key={item._id}
-                            className="border-b border-[#ffffff65] hover:bg-[#0f0f0f78] duration-300"
+        {/* ============ RECENT ACTIVITY ============ */}
+        <Section
+          title="Recent activity"
+          right={
+            <Link href={`/Dashboard/Ledger?user=${userId}`} className="text-sm font-medium text-green-400 hover:underline">
+              See everything in the ledger →
+            </Link>
+          }
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-gray-200 border-b border-[#ffffff65]">
+                  <th className="py-3 text-left font-medium">Date</th>
+                  <th className="py-3 text-left font-medium">Type</th>
+                  <th className="py-3 text-left font-medium">Details</th>
+                  <th className="py-3 text-right font-medium">Amount</th>
+                  <th className="py-3 text-center font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentLoading && !recent ? (
+                  <Empty cols={5}>Loading...</Empty>
+                ) : !recent?.rows?.length ? (
+                  <Empty cols={5}>No recorded activity yet.</Empty>
+                ) : (
+                  recent.rows.map((r) => {
+                    const s = Number(r.signedAmount || 0);
+                    return (
+                      <tr key={r.id} className="border-b border-[#ffffff30]">
+                        <td className="py-3 text-gray-200 whitespace-nowrap">{fmtDateTime(r.date)}</td>
+                        <td className="py-3 text-white">{r.typeLabel}</td>
+                        <td className="py-3 text-gray-400 max-w-[320px] truncate">{r.description || "—"}</td>
+                        <td
+                          className="py-3 text-right font-semibold whitespace-nowrap"
+                          style={{ color: s > 0 ? "#4ade80" : s < 0 ? "#f87171" : "#d1d5db" }}
+                        >
+                          {s > 0 ? "+" : s < 0 ? "−" : ""}
+                          {usd(Math.abs(s || r.amount))}
+                        </td>
+                        <td className="py-3 text-center">
+                          <span
+                            className={`px-2 py-1 rounded-full text-[12px] ${
+                              r.status === "approved" || r.status === "completed"
+                                ? "bg-green-800/40 text-green-400"
+                                : r.status === "pending"
+                                ? "bg-yellow-800/40 text-yellow-400"
+                                : "bg-[#66000095] text-red-400"
+                            }`}
                           >
-                            {/* MACHINE NAME */}
-                            <td className="py-4 flex items-center gap-3 text-white">
-                              <div className="w-10 h-10 rounded-full bg-[#2a2a2a] flex items-center justify-center text-md text-green-400">
-                                {(item.machine?.machineName || "U").charAt(0).toUpperCase()}
-                              </div>
-                              <div>
-                                <span className="font-medium text-[15px] block">
-                                  {item.machine?.machineName || "N/A"}
-                                </span>
-                              </div>
-                            </td>
-
-                            {/* DATE */}
-                            <td className="py-4 text-gray-200 text-start">
-                              {formatDate(item.assignedDate)}
-                            </td>
-
-                            {/* PROFIT */}
-                            <td className="py-4 text-center text-[16px] font-[600] text-white">
-                              ${formatAmount(item.monthlyProfitAccumulated)}
-                            </td>
-
-                            {/* STATUS */}
-                            <td className="py-4 text-center">
-                              <span
-                                className={`px-2 py-1 rounded-full text-[13px] ${
-                                  (item.status ?? "").toLowerCase() === "active"
-                                    ? "bg-green-800/40 text-green-400"
-                                    : "bg-[#66000095] text-red-400"
-                                }`}
-                              >
-                                {item.status ?? "-"}
-                              </span>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* ====== SHARE-BASED MACHINES TABLE ====== */}
-                <div>
-                  <div className="flex items-center justify-between mb-5">
-                    <h1 className="text-white text-[25px] font-semibold">
-                      Share-Based Machines
-                    </h1>
-
-                    {/* Summary badges */}
-                    {sharesSummary && (
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <span className="bg-[#2a2a2a] text-gray-300 text-[13px] px-3 py-1 rounded-full">
-                          Total Shares:{" "}
-                          <span className="text-white font-semibold">
-                            {sharesSummary.totalShares}
+                            {r.status}
                           </span>
-                        </span>
-                        <span className="bg-[#2a2a2a] text-gray-300 text-[13px] px-3 py-1 rounded-full">
-                          Total Invested:{" "}
-                          <span className="text-green-400 font-semibold">
-                            ${formatAmount(sharesSummary.totalInvestment)}
-                          </span>
-                        </span>
-                        <span className="bg-[#2a2a2a] text-gray-300 text-[13px] px-3 py-1 rounded-full">
-                          Monthly Profit:{" "}
-                          <span className="text-green-400 font-semibold">
-                            ${formatAmount(sharesSummary.expectedMonthlyProfit)}
-                          </span>
-                        </span>
-                        <span className="bg-[#2a2a2a] text-gray-300 text-[13px] px-3 py-1 rounded-full">
-                          Total Earned:{" "}
-                          <span className="text-yellow-400 font-semibold">
-                            ${formatAmount(sharesSummary.totalProfitEarned)}
-                          </span>
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-gray-200 border-b border-[#ffffff65] text-[16px]">
-                        <th className="py-3 text-left font-medium">Machine Name</th>
-                        <th className="py-3 text-left font-medium">Purchase Date</th>
-                        <th className="py-3 text-center font-medium">Shares Owned</th>
-                        <th className="py-3 text-center font-medium">Total Invested</th>
-                        <th className="py-3 text-center font-medium">Monthly Profit</th>
-                        <th className="py-3 text-center font-medium">Total Earned</th>
+                        </td>
                       </tr>
-                    </thead>
-
-                    <tbody>
-                      {shareMachineState?.loading ? (
-                        <tr>
-                          <td colSpan={6} className="py-8 text-center text-gray-300">
-                            Loading shares...
-                          </td>
-                        </tr>
-                      ) : userShares.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="py-8 text-center text-gray-300">
-                            No share-based machines found.
-                          </td>
-                        </tr>
-                      ) : (
-                        userShares.map((share) => {
-                          const shareMonthlyProfit =
-                            (share.profitPerShare || 0) * (share.numberOfShares || 0);
-
-                          return (
-                            <tr
-                              key={share.id}
-                              className="border-b border-[#ffffff65] hover:bg-[#0f0f0f78] duration-300"
-                            >
-                              {/* MACHINE NAME */}
-                              <td className="py-4 text-white">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-full bg-[#1a3a2a] flex items-center justify-center text-md text-green-400 border border-green-800">
-                                    {(share.machineName || "S").charAt(0).toUpperCase()}
-                                  </div>
-                                  <div>
-                                    <span className="font-medium text-[15px] block">
-                                      {share.machineName || "N/A"}
-                                    </span>
-                                    <span className="text-[11px] text-green-500 bg-green-900/30 px-2 py-0.5 rounded-full">
-                                      Share-Based
-                                    </span>
-                                  </div>
-                                </div>
-                              </td>
-
-                              {/* PURCHASE DATE */}
-                              <td className="py-4 text-gray-200 text-start">
-                                {formatDate(share.purchaseDate)}
-                              </td>
-
-                              {/* SHARES OWNED */}
-                              <td className="py-4 text-center text-white font-semibold">
-                                {share.numberOfShares}
-                              </td>
-
-                              {/* TOTAL INVESTED */}
-                              <td className="py-4 text-center text-[16px] font-[600] text-white">
-                                ${formatAmount(share.totalInvestment)}
-                              </td>
-
-                              {/* MONTHLY PROFIT */}
-                              <td className="py-4 text-center text-[16px] font-[600] text-green-400">
-                                ${formatAmount(shareMonthlyProfit)}
-                              </td>
-
-                              {/* TOTAL EARNED */}
-                              <td className="py-4 text-center text-[16px] font-[600] text-yellow-400">
-                                ${formatAmount(share.totalProfitEarned)}
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </TabsContent>
-
-          </Tabs>
-        </div>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+        <div className="h-8" />
       </DashboardLayout>
     </ProtectedRoutes>
   );
