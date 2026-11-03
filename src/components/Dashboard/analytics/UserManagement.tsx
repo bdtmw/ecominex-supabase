@@ -14,11 +14,11 @@ import { useUrlState } from "./useUrlState";
 
 const SEGMENTS: { id: string; label: string; hint: string }[] = [
   { id: "all", label: "All", hint: "Every account" },
-  { id: "new", label: "New this week", hint: "Joined in the last 7 days" },
+  { id: "new", label: "New", hint: "Joined in the last 7 days" },
   { id: "pending_withdrawal", label: "Pending withdrawal", hint: "Waiting for you to approve or reject" },
-  { id: "dormant", label: "Dormant with funds", hint: "Hold a balance but no activity for 30+ days" },
-  { id: "holding", label: "Holding funds", hint: "Balance above zero" },
-  { id: "never_deposited", label: "Never deposited", hint: "Signed up but have not funded the account" },
+  { id: "dormant", label: "Dormant", hint: "Hold a balance but no activity for 30+ days" },
+  { id: "holding", label: "With funds", hint: "Balance above zero" },
+  { id: "never_deposited", label: "No deposit", hint: "Signed up but have not funded the account" },
   { id: "no_machines", label: "No machines", hint: "No active machines or shares" },
   { id: "admins", label: "Admins", hint: "Admin accounts" },
 ];
@@ -119,31 +119,31 @@ export default function UserManagement() {
   return (
     <div className="space-y-4">
       {/* segments: the people an admin actually looks for */}
-      <div role="tablist" aria-label="User segments" className="flex flex-wrap gap-2">
+      <div role="tablist" aria-label="User segments" className="flex flex-wrap gap-1.5">
         {SEGMENTS.map((s) => {
           const on = s.id === segment;
           const c = counts[s.id];
           const urgent = s.id === "pending_withdrawal" && c > 0;
           return (
             <button key={s.id} role="tab" aria-selected={on} title={s.hint} onClick={() => url.set({ segment: s.id === "all" ? "" : s.id })}
-              className={`rounded-full border px-3 py-1.5 text-sm transition ${on ? "border-green-500 bg-green-500/10 text-green-400" : "border-white/10 text-gray-300 hover:border-white/30 hover:text-white"}`}>
+              className={`whitespace-nowrap rounded-full border px-3 py-1 text-[13px] transition ${on ? "border-green-500 bg-green-500/10 text-green-400" : "border-white/10 text-gray-300 hover:border-white/30 hover:text-white"}`}>
               {s.label}
-              {c !== undefined && <span className={`ml-2 rounded-full px-1.5 py-0.5 text-[11px] ${urgent ? "bg-yellow-400 text-black" : "bg-white/10 text-gray-300"}`}>{num(c)}</span>}
+              {c !== undefined && <span className={`ml-1.5 rounded-full px-1.5 py-px text-[11px] ${urgent ? "bg-yellow-400 text-black" : "bg-white/10 text-gray-300"}`}>{num(c)}</span>}
             </button>
           );
         })}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl bg-[#1e1e1e] p-2">
         <label className="relative min-w-[240px] flex-1 sm:max-w-md">
           <span className="sr-only">Search users</span>
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden />
           <input value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Search name, email, phone or country…"
-            className="w-full rounded-lg border border-white/10 bg-[#1e1e1e] py-2.5 pl-9 pr-9 text-sm text-white placeholder-gray-500 outline-none focus:border-green-500/60" />
+            className="w-full rounded-lg border border-white/10 bg-black/30 py-2 pl-9 pr-9 text-sm text-white placeholder-gray-500 outline-none focus:border-green-500/60" />
           {searchText && <button aria-label="Clear search" onClick={() => setSearchText("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 hover:text-white"><X className="h-4 w-4" /></button>}
         </label>
         <p className="text-sm" style={{ color: VIZ.muted }} aria-live="polite">{data ? `${num(data.total)} user${data.total === 1 ? "" : "s"}${activeSeg && segment !== "all" ? ` · ${activeSeg.hint.toLowerCase()}` : ""}` : "Loading…"}</p>
-        <button onClick={exportCsv} className="ml-auto inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-gray-200 transition hover:border-green-500/50 hover:text-white"><Download className="h-4 w-4" aria-hidden />Export CSV</button>
+        <button onClick={exportCsv} className="ml-auto inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-1.5 text-sm text-gray-200 transition hover:border-green-500/50 hover:text-white"><Download className="h-4 w-4" aria-hidden />Export CSV</button>
       </div>
 
       {error && <div role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}

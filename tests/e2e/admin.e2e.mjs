@@ -99,7 +99,7 @@ await page.goto(`${BASE}/Dashboard/AllUser/`);
 await page.getByRole("tab", { name: /All/ }).first().waitFor();
 await page.waitForFunction(() => document.querySelectorAll("tbody tr").length > 1, null, { timeout: 15000 });
 const tabCount = async (name) => Number((await text(page.getByRole("tab", { name: new RegExp(`^${name}`) }))).match(/(\d+)\s*$/)?.[1]);
-check("users: segment tab counts equal SQL", (await tabCount("All")) === u0.segmentCounts.all && (await tabCount("New this week")) === u0.segmentCounts.new && (await tabCount("Pending withdrawal")) === u0.segmentCounts.pending_withdrawal && (await tabCount("Dormant with funds")) === u0.segmentCounts.dormant, JSON.stringify(u0.segmentCounts));
+check("users: segment tab counts equal SQL", (await tabCount("All")) === u0.segmentCounts.all && (await tabCount("New")) === u0.segmentCounts.new && (await tabCount("Pending withdrawal")) === u0.segmentCounts.pending_withdrawal && (await tabCount("Dormant")) === u0.segmentCounts.dormant, JSON.stringify(u0.segmentCounts));
 check("users: first page has 25 rows and says 'Page 1 of 2'", (await page.locator("tbody tr").count()) === 25 && (await page.getByText(/Page 1 of 2/).count()) === 1);
 await page.getByRole("button", { name: /Next/ }).click();
 await page.waitForURL(/page=2/);
@@ -212,7 +212,7 @@ await page.waitForFunction(() => !document.body.innerText.includes("Loading…")
 await page.getByRole("link", { name: /See these users/ }).click();
 await page.waitForURL(/AllUser\/?\?segment=dormant/);
 await page.waitForFunction(() => document.querySelectorAll("tbody tr").length >= 1);
-check("cross-link: 'See these users' opens Users on the Dormant segment", (await page.getByRole("tab", { name: /^Dormant with funds/ }).getAttribute("aria-selected")) === "true");
+check("cross-link: 'See these users' opens Users on the Dormant segment", (await page.getByRole("tab", { name: /^Dormant/ }).getAttribute("aria-selected")) === "true");
 check("sidebar: has Ledger under Finance and highlights it on the ledger page", await (async () => { await page.goto(`${BASE}/Dashboard/Ledger/`); await page.waitForSelector('nav[aria-label="Admin navigation"]'); return (await text(page.locator('nav[aria-label="Admin navigation"] a[aria-current="page"]'))).startsWith("Ledger"); })());
 await page.keyboard.press("Control+k");
 await page.getByRole("dialog", { name: "Jump to" }).waitFor();
