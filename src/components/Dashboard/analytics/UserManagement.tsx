@@ -31,15 +31,15 @@ const TAGS: Record<string, { label: string; tone: string }> = {
   admin: { label: "Admin", tone: VIZ.investments },
 };
 
-const COLUMNS: { id: string; label: string; align?: "right"; sort?: string; hide?: string }[] = [
-  { id: "user", label: "User", sort: "name" },
-  { id: "balance", label: "Balance", sort: "balance", align: "right" },
-  { id: "deposited", label: "Deposited", sort: "deposited", align: "right", hide: "hidden xl:table-cell" },
-  { id: "withdrawn", label: "Withdrawn", sort: "withdrawn", align: "right", hide: "hidden xl:table-cell" },
-  { id: "machines", label: "Machines", sort: "machines", align: "right", hide: "hidden lg:table-cell" },
-  { id: "referrals", label: "Referrals", sort: "referrals", align: "right", hide: "hidden xl:table-cell" },
-  { id: "activity", label: "Last activity", sort: "activity", hide: "hidden md:table-cell" },
-  { id: "joined", label: "Joined", sort: "joined", hide: "hidden lg:table-cell" },
+const COLUMNS: { id: string; label: string; align?: "right"; sort?: string; hide?: string; w?: string }[] = [
+  { id: "user", label: "User", sort: "name", w: "min-w-[260px]" },
+  { id: "balance", label: "Balance", sort: "balance", align: "right", w: "w-[150px]" },
+  { id: "deposited", label: "Deposited", sort: "deposited", align: "right", hide: "hidden lg:table-cell", w: "w-[120px]" },
+  { id: "withdrawn", label: "Withdrawn", sort: "withdrawn", align: "right", hide: "hidden lg:table-cell", w: "w-[120px]" },
+  { id: "machines", label: "Machines", sort: "machines", align: "right", hide: "hidden md:table-cell", w: "w-[100px]" },
+  { id: "referrals", label: "Referrals", sort: "referrals", align: "right", hide: "hidden 2xl:table-cell", w: "w-[90px]" },
+  { id: "activity", label: "Last activity", sort: "activity", hide: "hidden xl:table-cell", w: "w-[120px]" },
+  { id: "joined", label: "Joined", sort: "joined", hide: "hidden 2xl:table-cell", w: "w-[120px]" },
 ];
 
 const ago = (iso: string | null) => {
@@ -148,22 +148,22 @@ export default function UserManagement() {
 
       {error && <div role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
 
-      <div className="relative overflow-x-auto rounded-2xl bg-[#1e1e1e]" style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
-        <table className="w-full min-w-[640px] text-left text-sm">
+      <div className="relative max-h-[calc(100vh-200px)] overflow-auto rounded-2xl bg-[#1e1e1e]" style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
+        <table className="w-full min-w-[720px] text-left text-sm">
           <thead>
-            <tr className="border-b text-xs" style={{ borderColor: VIZ.grid, color: VIZ.muted }}>
+            <tr className="text-xs" style={{ color: VIZ.muted }}>
               {COLUMNS.map((c) => (
-                <th key={c.id} scope="col" aria-sort={sort === c.sort ? (dir === "asc" ? "ascending" : "descending") : "none"} className={`px-4 py-3 font-medium ${c.align === "right" ? "text-right" : ""} ${c.hide || ""}`}>
+                <th key={c.id} scope="col" aria-sort={sort === c.sort ? (dir === "asc" ? "ascending" : "descending") : "none"} className={`sticky top-0 z-10 whitespace-nowrap bg-[#1e1e1e] px-4 py-3 font-medium shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)] ${c.align === "right" ? "text-right" : ""} ${c.hide || ""} ${c.w || ""}`}>
                   <button onClick={() => sortBy(c.sort)} className={`inline-flex items-center gap-1 hover:text-white ${sort === c.sort ? "text-white" : ""}`}>
                     {c.label}{sort === c.sort && (dir === "asc" ? <ArrowUp className="h-3 w-3" aria-hidden /> : <ArrowDown className="h-3 w-3" aria-hidden />)}
                   </button>
                 </th>
               ))}
-              <th className="px-4 py-3"><span className="sr-only">Actions</span></th>
+              <th className="sticky top-0 z-10 w-[120px] bg-[#1e1e1e] px-4 py-3 shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((u) => (
+            {rows.map((u, idx) => (
               <tr key={u.id} className="cursor-pointer border-b transition hover:bg-white/[0.03]" style={{ borderColor: VIZ.grid }} onClick={() => router.push(`/Dashboard/AllUser/${u.id}`)}>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
@@ -185,20 +185,20 @@ export default function UserManagement() {
                   {u.profitBalance > 0 && u.depositedBalance > 0 && <p className="text-[11px]" style={{ color: VIZ.muted }} title="Deposited funds + mining profit">{money(u.depositedBalance)} + {money(u.profitBalance)} profit</p>}
                   {u.pendingWithdrawal > 0 && <p className="text-[11px]" style={{ color: VIZ.warning }}>{money(u.pendingWithdrawal)} withdrawing</p>}
                 </td>
-                <td className="hidden px-4 py-3 text-right tabular-nums text-gray-200 xl:table-cell">{money(u.totalDeposited)}</td>
-                <td className="hidden px-4 py-3 text-right tabular-nums text-gray-200 xl:table-cell">{money(u.totalWithdrawn)}</td>
-                <td className="hidden px-4 py-3 text-right tabular-nums text-gray-200 lg:table-cell">{u.machines}{u.shares > 0 && <span style={{ color: VIZ.muted }}> + {u.shares} sh</span>}</td>
-                <td className="hidden px-4 py-3 text-right tabular-nums text-gray-200 xl:table-cell">{u.referrals}</td>
-                <td className="hidden px-4 py-3 md:table-cell" style={{ color: VIZ.textSecondary }}>{ago(u.lastActivityAt)}</td>
-                <td className="hidden px-4 py-3 lg:table-cell" style={{ color: VIZ.textSecondary }}>{new Date(u.joinedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
+                <td className="hidden whitespace-nowrap px-4 py-3 text-right tabular-nums text-gray-200 lg:table-cell">{money(u.totalDeposited)}</td>
+                <td className="hidden whitespace-nowrap px-4 py-3 text-right tabular-nums text-gray-200 lg:table-cell">{money(u.totalWithdrawn)}</td>
+                <td className="hidden whitespace-nowrap px-4 py-3 text-right tabular-nums text-gray-200 md:table-cell">{u.machines}{u.shares > 0 && <span style={{ color: VIZ.muted }}> + {u.shares} sh</span>}</td>
+                <td className="hidden px-4 py-3 text-right tabular-nums text-gray-200 2xl:table-cell">{u.referrals}</td>
+                <td className="hidden whitespace-nowrap px-4 py-3 xl:table-cell" style={{ color: VIZ.textSecondary }}>{ago(u.lastActivityAt)}</td>
+                <td className="hidden whitespace-nowrap px-4 py-3 2xl:table-cell" style={{ color: VIZ.textSecondary }}>{new Date(u.joinedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
                 <td className="relative px-2 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-1">
-                    <Link href={`/Dashboard/Ledger?user=${u.id}`} title="Open this user's ledger" className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-green-400 hover:bg-green-500/10"><BookOpen className="h-3.5 w-3.5" aria-hidden />Ledger</Link>
-                    <button onClick={() => setBalanceUser(u)} title="Add balance to this user" className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-green-400 hover:bg-green-500/10"><Plus className="h-3.5 w-3.5" aria-hidden />Add balance</button>
+                    <Link href={`/Dashboard/Ledger?user=${u.id}`} title="Open this user's ledger" aria-label={`Ledger of ${u.firstName} ${u.lastName}`} className="rounded-md p-2 text-green-400 hover:bg-green-500/10"><BookOpen className="h-4 w-4" aria-hidden /></Link>
+                    <button onClick={() => setBalanceUser(u)} title="Add balance to this user" aria-label={`Add balance to ${u.firstName} ${u.lastName}`} className="rounded-md p-2 text-green-400 hover:bg-green-500/10"><Plus className="h-4 w-4" aria-hidden /></button>
                     <button aria-label={`More actions for ${u.firstName} ${u.lastName}`} aria-haspopup="menu" aria-expanded={menuFor === u.id} onClick={(e) => { e.stopPropagation(); setMenuFor(menuFor === u.id ? null : u.id); }} className="rounded-md p-1.5 text-gray-300 hover:bg-white/10"><MoreVertical className="h-4 w-4" /></button>
                   </div>
                   {menuFor === u.id && (
-                    <div role="menu" className="absolute right-2 top-full z-20 mt-1 w-44 overflow-hidden rounded-lg border border-white/10 bg-[#161616] text-left text-sm shadow-xl">
+                    <div role="menu" className={`absolute right-2 z-20 w-44 rounded-lg ${idx >= rows.length - 3 && rows.length > 4 ? "bottom-full mb-1" : "top-full mt-1"} overflow-hidden border border-white/10 bg-[#161616] text-left text-sm shadow-xl`}>
                       <Link role="menuitem" href={`/Dashboard/AllUser/${u.id}`} className="block px-3 py-2 text-gray-200 hover:bg-white/5">View profile</Link>
                       <Link role="menuitem" href={`/Dashboard/Ledger?user=${u.id}`} className="block px-3 py-2 text-gray-200 hover:bg-white/5">View ledger</Link>
                       <button role="menuitem" onClick={() => { setMenuFor(null); setBalanceUser(u); }} className="block w-full px-3 py-2 text-left text-gray-200 hover:bg-white/5">Add balance</button>

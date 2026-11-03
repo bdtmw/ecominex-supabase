@@ -244,6 +244,20 @@ await mob.page.goto(`${BASE}/Dashboard/`); await mob.page.waitForTimeout(2000);
 await mob.page.screenshot({ path: `${OUT}/5-overview-mobile.png`, fullPage: true });
 await mob.ctx.close();
 
+// ---- users table: header stays put while the rows scroll, and no column is cut off
+await page.goto(`${BASE}/Dashboard/AllUser/`);
+await page.waitForFunction(() => document.querySelectorAll("tbody tr").length > 1, null, { timeout: 15000 });
+const tbl = await page.evaluate(() => {
+  const box = document.querySelector("table").parentElement; const th = document.querySelector("thead th");
+  box.scrollTop = 300;
+  const b = box.getBoundingClientRect(), t = th.getBoundingClientRect();
+  return { scrollable: box.scrollHeight > box.clientHeight, headerTop: Math.round(t.top - b.top), hOverflow: box.scrollWidth - box.clientWidth };
+});
+check("users table: header row stays pinned while the rows scroll", tbl.scrollable && Math.abs(tbl.headerTop) <= 1, JSON.stringify(tbl));
+check("users table: no horizontal cut-off at desktop width", tbl.hOverflow <= 1, JSON.stringify(tbl));
+await page.evaluate(() => { document.querySelector("table").parentElement.scrollTop = 0; });
+await page.screenshot({ path: `${OUT}/7-users-table.png`, fullPage: false });
+
 // ---- single-user page: one page, no tabs, exact money figures
 const su = u0.rows.find((r) => r.totalDeposited > 0) || u0.rows[0];
 await page.goto(`${BASE}/Dashboard/AllUser/${su.id}`);
