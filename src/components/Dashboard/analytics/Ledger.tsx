@@ -129,10 +129,10 @@ export default function Ledger() {
       <div style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
         <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
-            { label: "Money in", value: t ? money(t.credits) : "—", color: VIZ.good, hint: "Deposits, profit, sales and bonuses credited" },
-            { label: "Money out", value: t ? money(t.debits) : "—", hint: "Withdrawals paid and purchases" },
-            { label: "Net", value: t ? fmtNet(t.net) : "—", color: t ? (t.net > 0 ? VIZ.good : t.net < 0 ? "#f87171" : undefined) : undefined, hint: "Money in minus money out" },
-            { label: "On hold", value: t ? money(t.pendingHold) : "—", color: t?.pendingHold > 0 ? VIZ.warning : undefined, hint: "Pending withdrawals waiting for approval" },
+            { label: "Total Credit", value: t ? money(t.credits) : "—", color: VIZ.good, hint: "Deposits, profit, sales and bonuses credited" },
+            { label: "Total Debit", value: t ? money(t.debits) : "—", hint: "Withdrawals paid and purchases" },
+            { label: "Net", value: t ? fmtNet(t.net) : "—", color: t ? (t.net > 0 ? VIZ.good : t.net < 0 ? "#f87171" : undefined) : undefined, hint: "Total credit minus total debit" },
+            { label: "Pending Withdrawals", value: t ? money(t.pendingHold) : "—", color: t?.pendingHold > 0 ? VIZ.warning : undefined, hint: "Pending withdrawals waiting for approval" },
           ].map((x) => (
             <div key={x.label} data-stat title={x.hint} className="rounded-xl bg-[#1e1e1e] px-4 py-3">
               <dt className="text-xs" style={{ color: VIZ.muted }}>{x.label}</dt>

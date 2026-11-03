@@ -37,9 +37,9 @@ export default function UserLedger() {
       <dl className="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-2xl bg-[#1e1e1e] px-4 py-3" style={{ opacity: loading ? 0.6 : 1 }}>
         {[
           { label: "Current balance", value: data ? money2(data.balance) : "—", color: VIZ.text },
-          { label: "Money in", value: t ? money(t.credits) : "—", color: VIZ.good },
-          { label: "Money out", value: t ? money(t.debits) : "—", color: VIZ.text },
-          { label: "On hold (pending withdrawals)", value: t ? money(t.pendingHold) : "—", color: t?.pendingHold > 0 ? VIZ.warning : VIZ.text },
+          { label: "Total Credit", value: t ? money(t.credits) : "—", color: VIZ.good },
+          { label: "Total Debit", value: t ? money(t.debits) : "—", color: VIZ.text },
+          { label: "Pending Withdrawals", value: t ? money(t.pendingHold) : "—", color: t?.pendingHold > 0 ? VIZ.warning : VIZ.text },
         ].map((x) => (
           <div key={x.label}><dt className="text-xs" style={{ color: VIZ.muted }}>{x.label}</dt><dd className="text-lg font-semibold tabular-nums" style={{ color: x.color }}>{x.value}</dd></div>
         ))}
