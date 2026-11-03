@@ -32,14 +32,14 @@ const TAGS: Record<string, { label: string; tone: string }> = {
 };
 
 const COLUMNS: { id: string; label: string; align?: "right"; sort?: string; hide?: string; w?: string }[] = [
-  { id: "user", label: "User", sort: "name", w: "min-w-[260px]" },
-  { id: "balance", label: "Balance", sort: "balance", align: "right", w: "w-[150px]" },
-  { id: "deposited", label: "Deposited", sort: "deposited", align: "right", hide: "hidden lg:table-cell", w: "w-[120px]" },
-  { id: "withdrawn", label: "Withdrawn", sort: "withdrawn", align: "right", hide: "hidden lg:table-cell", w: "w-[120px]" },
-  { id: "machines", label: "Machines", sort: "machines", align: "right", hide: "hidden md:table-cell", w: "w-[100px]" },
-  { id: "referrals", label: "Referrals", sort: "referrals", align: "right", hide: "hidden 2xl:table-cell", w: "w-[90px]" },
-  { id: "activity", label: "Last activity", sort: "activity", hide: "hidden xl:table-cell", w: "w-[120px]" },
-  { id: "joined", label: "Joined", sort: "joined", hide: "hidden 2xl:table-cell", w: "w-[120px]" },
+  { id: "user", label: "User", sort: "name", w: "w-[24%] min-w-[220px]" },
+  { id: "balance", label: "Balance", sort: "balance", align: "right" },
+  { id: "deposited", label: "Deposited", sort: "deposited", align: "right", hide: "hidden lg:table-cell" },
+  { id: "withdrawn", label: "Withdrawn", sort: "withdrawn", align: "right", hide: "hidden lg:table-cell" },
+  { id: "machines", label: "Machines", sort: "machines", align: "right", hide: "hidden md:table-cell" },
+  { id: "activity", label: "Last activity", sort: "activity", hide: "hidden 2xl:table-cell" },
+  { id: "referrals", label: "Referrals", sort: "referrals", align: "right", hide: "hidden 2xl:table-cell" },
+  { id: "joined", label: "Joined", sort: "joined", hide: "hidden 2xl:table-cell" },
 ];
 
 const ago = (iso: string | null) => {
@@ -148,8 +148,8 @@ export default function UserManagement() {
 
       {error && <div role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
 
-      <div className="relative max-h-[calc(100vh-200px)] overflow-auto rounded-2xl bg-[#1e1e1e]" style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
-        <table className="w-full min-w-[720px] text-left text-sm">
+      <div className="relative max-h-[calc(100vh-200px)] overflow-y-auto overflow-x-hidden rounded-2xl bg-[#1e1e1e] [color-scheme:dark] max-md:overflow-x-auto" style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
+        <table className="w-full text-left text-sm max-md:min-w-[640px]">
           <thead>
             <tr className="text-xs" style={{ color: VIZ.muted }}>
               {COLUMNS.map((c) => (
@@ -159,7 +159,7 @@ export default function UserManagement() {
                   </button>
                 </th>
               ))}
-              <th className="sticky top-0 z-10 w-[120px] bg-[#1e1e1e] px-4 py-3 shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]"><span className="sr-only">Actions</span></th>
+              <th className="sticky top-0 z-10 w-[104px] bg-[#1e1e1e] px-4 py-3 shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)]"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
@@ -188,8 +188,8 @@ export default function UserManagement() {
                 <td className="hidden whitespace-nowrap px-4 py-3 text-right tabular-nums text-gray-200 lg:table-cell">{money(u.totalDeposited)}</td>
                 <td className="hidden whitespace-nowrap px-4 py-3 text-right tabular-nums text-gray-200 lg:table-cell">{money(u.totalWithdrawn)}</td>
                 <td className="hidden whitespace-nowrap px-4 py-3 text-right tabular-nums text-gray-200 md:table-cell">{u.machines}{u.shares > 0 && <span style={{ color: VIZ.muted }}> + {u.shares} sh</span>}</td>
+                <td className="hidden whitespace-nowrap px-4 py-3 2xl:table-cell" style={{ color: VIZ.textSecondary }}>{ago(u.lastActivityAt)}</td>
                 <td className="hidden px-4 py-3 text-right tabular-nums text-gray-200 2xl:table-cell">{u.referrals}</td>
-                <td className="hidden whitespace-nowrap px-4 py-3 xl:table-cell" style={{ color: VIZ.textSecondary }}>{ago(u.lastActivityAt)}</td>
                 <td className="hidden whitespace-nowrap px-4 py-3 2xl:table-cell" style={{ color: VIZ.textSecondary }}>{new Date(u.joinedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
                 <td className="relative px-2 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-1">
