@@ -144,12 +144,12 @@ export default function Ledger() {
         </p>
       </dl>
 
-      <div className="relative overflow-x-auto rounded-2xl bg-[#1e1e1e]" style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
-        <table className="w-full min-w-[700px] text-left text-sm">
+      <div className="relative max-h-[calc(100vh-230px)] min-h-[320px] overflow-y-auto overflow-x-hidden rounded-2xl bg-[#1e1e1e] [color-scheme:dark] max-md:overflow-x-auto" style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
+        <table className="w-full text-left text-sm max-md:min-w-[700px]">
           <thead>
-            <tr className="border-b text-xs" style={{ borderColor: VIZ.grid, color: VIZ.muted }}>
-              <th className="px-4 py-3 font-medium">When</th><th className="px-4 py-3 font-medium">User</th><th className="px-4 py-3 font-medium">Activity</th>
-              <th className="px-4 py-3 text-right font-medium">Amount</th><th className="px-4 py-3 text-right font-medium" title="The user's balance right after this entry">Balance</th>
+            <tr className="text-xs" style={{ color: VIZ.muted }}>
+              <th className="sticky top-0 z-10 bg-[#1e1e1e] shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)] px-4 py-3 font-medium">When</th><th className="sticky top-0 z-10 bg-[#1e1e1e] shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)] px-4 py-3 font-medium">User</th><th className="sticky top-0 z-10 bg-[#1e1e1e] shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)] px-4 py-3 font-medium">Activity</th>
+              <th className="sticky top-0 z-10 bg-[#1e1e1e] shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)] px-4 py-3 text-right font-medium">Amount</th><th className="sticky top-0 z-10 bg-[#1e1e1e] shadow-[inset_0_-1px_0_rgba(255,255,255,0.1)] px-4 py-3 text-right font-medium" title="The user's balance right after this entry">Balance</th>
             </tr>
           </thead>
           <tbody>

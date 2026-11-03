@@ -167,6 +167,14 @@ await page.waitForFunction((n) => document.querySelectorAll("tbody tr").length =
 check("ledger: category + status combine (pending withdrawals only)", (await page.locator("tbody tr").count()) === Lp.total && (await page.locator("tbody tr", { hasText: "Pending" }).count()) === Lp.total, `${Lp.total}`);
 
 const target = users[12];
+await page.goto(`${BASE}/Dashboard/Ledger/?range=all`);
+await page.waitForFunction(() => document.querySelectorAll("tbody tr").length > 10, null, { timeout: 15000 });
+const ledgerTbl = await page.evaluate(() => {
+  const box = document.querySelector("table").parentElement, th = document.querySelector("thead th");
+  box.scrollTop = 400; const b = box.getBoundingClientRect(), t = th.getBoundingClientRect();
+  return { scrollable: box.scrollHeight > box.clientHeight, headerTop: Math.round(t.top - b.top), hOverflow: box.scrollWidth - box.clientWidth };
+});
+check("ledger table: header row stays pinned while the rows scroll, no horizontal scroll", ledgerTbl.scrollable && Math.abs(ledgerTbl.headerTop) <= 1 && ledgerTbl.hOverflow <= 1, JSON.stringify(ledgerTbl));
 await page.goto(`${BASE}/Dashboard/Ledger/?user=${target.id}`);
 await page.getByText(/^Only /).waitFor();
 const Lu = await ledger(null, null, null, target.id);
