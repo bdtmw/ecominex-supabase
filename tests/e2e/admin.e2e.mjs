@@ -257,6 +257,10 @@ const tbl = await page.evaluate(() => {
 });
 check("users table: header row stays pinned while the rows scroll", tbl.scrollable && Math.abs(tbl.headerTop) <= 1, JSON.stringify(tbl));
 check("users table: a very long user name does not stretch the User column (max 35% of the table), no horizontal cut-off", tbl.hOverflow <= 1 && tbl.userW <= tbl.tableW * 0.35, JSON.stringify(tbl));
+const mrow = (await users_("all", "machines", "desc", 25, 0)).rows[0];
+const want = [mrow.machines > 0 && `${mrow.machines} ${mrow.machines === 1 ? "Machine" : "Machines"}`, mrow.shares > 0 && `${mrow.shares} ${mrow.shares === 1 ? "Share" : "Shares"}`].filter(Boolean);
+const cellTxt = await page.locator("tbody tr", { hasText: mrow.email }).first().innerText().catch(() => "");
+check("users table: Machines column says Machine(s) and/or Share(s) plainly", want.length === 0 || want.every((w) => cellTxt.includes(w)), `${JSON.stringify(want)} in ${cellTxt.slice(0, 120)}`);
 await page.evaluate(() => { document.querySelector("table").parentElement.scrollTop = 0; });
 await page.screenshot({ path: `${OUT}/7-users-table.png`, fullPage: false });
 

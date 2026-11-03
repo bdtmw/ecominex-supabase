@@ -187,7 +187,14 @@ export default function UserManagement() {
                 </td>
                 <td className="hidden whitespace-nowrap px-4 py-3 text-right tabular-nums text-gray-200 lg:table-cell">{money(u.totalDeposited)}</td>
                 <td className="hidden whitespace-nowrap px-4 py-3 text-right tabular-nums text-gray-200 lg:table-cell">{money(u.totalWithdrawn)}</td>
-                <td className="hidden whitespace-nowrap px-4 py-3 text-right tabular-nums text-gray-200 md:table-cell">{u.machines}{u.shares > 0 && <span style={{ color: VIZ.muted }}> + {u.shares} sh</span>}</td>
+                <td className="hidden px-4 py-3 text-right tabular-nums text-gray-200 md:table-cell">
+                  {u.machines > 0 || u.shares > 0 ? (
+                    <>
+                      {u.machines > 0 && <p>{u.machines} {u.machines === 1 ? "Machine" : "Machines"}</p>}
+                      {u.shares > 0 && <p className={u.machines > 0 ? "text-[12px]" : ""} style={u.machines > 0 ? { color: VIZ.muted } : undefined}>{u.shares} {u.shares === 1 ? "Share" : "Shares"}</p>}
+                    </>
+                  ) : <span style={{ color: VIZ.muted }}>—</span>}
+                </td>
                 <td className="hidden whitespace-nowrap px-4 py-3 2xl:table-cell" style={{ color: VIZ.textSecondary }}>{ago(u.lastActivityAt)}</td>
                 <td className="hidden px-4 py-3 text-right tabular-nums text-gray-200 2xl:table-cell">{u.referrals}</td>
                 <td className="hidden whitespace-nowrap px-4 py-3 2xl:table-cell" style={{ color: VIZ.textSecondary }}>{new Date(u.joinedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
