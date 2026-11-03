@@ -66,17 +66,17 @@ await page.waitForFunction(() => !document.body.innerText.includes("Loading…")
 await page.waitForTimeout(500);
 const k30 = await kpis(30);
 
-check("overview: hero 'Net cash flow' equals deposits − withdrawals from SQL", (await tileValue("Net cash flow")) === money(k30.current.deposits - k30.current.withdrawals), `${await tileValue("Net cash flow")} vs ${money(k30.current.deposits - k30.current.withdrawals)}`);
-check("overview: 'Deposits credited' tile matches SQL", (await tileValue("Deposits credited")) === money(k30.current.deposits));
-check("overview: 'Withdrawals paid' tile matches SQL", (await tileValue("Withdrawals paid")) === money(k30.current.withdrawals));
-check("overview: 'New users' tile matches SQL", (await tileValue("New users")) === String(k30.current.newUsers), await tileValue("New users"));
-check("overview: 'Machine investments' and 'Mining profit paid' match SQL", (await tileValue("Machine investments")) === money(k30.current.investments) && (await tileValue("Mining profit paid")) === money(k30.current.profitPaid));
+check("overview: hero 'Net Cash Flow' equals deposits − withdrawals from SQL", (await tileValue("Net Cash Flow")) === money(k30.current.deposits - k30.current.withdrawals), `${await tileValue("Net Cash Flow")} vs ${money(k30.current.deposits - k30.current.withdrawals)}`);
+check("overview: 'Deposits credited' tile matches SQL", (await tileValue("Total Deposits")) === money(k30.current.deposits));
+check("overview: 'Withdrawals paid' tile matches SQL", (await tileValue("Total Withdrawals")) === money(k30.current.withdrawals));
+check("overview: 'New users' tile matches SQL", (await tileValue("New Users")) === String(k30.current.newUsers), await tileValue("New Users"));
+check("overview: 'Machine investments' and 'Mining profit paid' match SQL", (await tileValue("Machine & Share Purchases")) === money(k30.current.investments) && (await tileValue("Profit Paid to Users")) === money(k30.current.profitPaid));
 const pw = k30.attention.pendingWithdrawals;
 check("overview: attention card shows the pending count and amount", (await page.getByText(`${pw.count} pending withdrawal`).count()) === 1 && (await page.getByText(money(pw.amount), { exact: true }).count()) >= 1, `count=${pw.count} amount=${pw.amount}`);
 check("overview: the oldest pending request (100h) is flagged Overdue with an icon + label", (await page.getByText("Overdue", { exact: true }).count()) === 1);
 check("overview: 'Funds held' equals the sum of balances", (await page.getByText(money(k30.snapshot.fundsHeld), { exact: true }).count()) >= 1, money(k30.snapshot.fundsHeld));
 const top = k30.attention.topUsers[0];
-check("overview: largest balance listed first", (await text(page.locator("section", { hasText: "Largest balances" }).locator("ol li").first())).includes(money(top.totalBalance)), top.name);
+check("overview: largest balance listed first", (await text(page.locator("section", { hasText: "Top Balances" }).locator("ol li").first())).includes(money(top.totalBalance)), top.name);
 
 // no charts on the overview
 check("overview: no charts are rendered", (await page.locator('svg[role="img"][aria-label*="arrow keys"]').count()) === 0);
@@ -91,7 +91,7 @@ await page.getByRole("option", { name: "Last 7 days" }).click();
 await page.waitForURL(/range=7d/);
 const k7 = await kpis(7);
 await page.waitForFunction((v) => document.body.innerText.includes(v), money(k7.current.deposits - k7.current.withdrawals), { timeout: 10000 }).catch(() => {});
-check("overview: switching to 'Last 7 days' updates the URL and every figure", (await tileValue("Net cash flow")) === money(k7.current.deposits - k7.current.withdrawals) && (await tileValue("Deposits credited")) === money(k7.current.deposits), `${await tileValue("Net cash flow")} vs ${money(k7.current.deposits - k7.current.withdrawals)}`);
+check("overview: switching to 'Last 7 days' updates the URL and every figure", (await tileValue("Net Cash Flow")) === money(k7.current.deposits - k7.current.withdrawals) && (await tileValue("Total Deposits")) === money(k7.current.deposits), `${await tileValue("Net Cash Flow")} vs ${money(k7.current.deposits - k7.current.withdrawals)}`);
 
 // =====================================================================  USERS
 const u0 = await users_();

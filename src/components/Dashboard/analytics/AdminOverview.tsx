@@ -49,14 +49,24 @@ export default function AdminOverview() {
       {/* filters: one row above everything they scope */}
       <div className="flex flex-wrap items-center gap-3">
         <RangePicker range={range} from={from} to={to} onChange={(r) => url.set({ range: r.range, from: r.from, to: r.to })} />
-        <p className="text-xs" style={{ color: VIZ.muted }}>{periodLabel}{data && <span> · compared with the {Math.round((new Date(data.to).getTime() - new Date(data.from).getTime()) / 86400000)} days before</span>}</p>
+        <p className="text-xs" style={{ color: VIZ.muted }}>{periodLabel}{data && <span> · changes are compared with the previous {Math.round((new Date(data.to).getTime() - new Date(data.from).getTime()) / 86400000)} days</span>}</p>
       </div>
+
+      {cur && (
+        <p className="rounded-xl bg-[#1e1e1e] px-4 py-3 text-sm" style={{ color: VIZ.textSecondary }} data-summary>
+          In this period users deposited <strong className="text-white">{money(cur.deposits)}</strong> and withdrew <strong className="text-white">{money(cur.withdrawals)}</strong>,
+          a net of <strong style={{ color: netNow >= 0 ? VIZ.good : "#f87171" }}>{netNow >= 0 ? "+" : "−"}{money(Math.abs(netNow))}</strong>.
+          {" "}<strong className="text-white">{num(cur.newUsers)}</strong> new user{cur.newUsers === 1 ? "" : "s"} joined
+          {pending?.count > 0 ? <> and <strong style={{ color: VIZ.warning }}>{pending.count} withdrawal{pending.count === 1 ? " is" : "s are"} waiting for your approval</strong></> : <> and no withdrawals are waiting</>}.
+        </p>
+      )}
 
       {error && <div role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
 
       {/* 1. what needs a decision today */}
       <section aria-label="Needs attention" className="rounded-2xl bg-[#1e1e1e] p-4 sm:p-5">
-        <h3 className="mb-3 text-base font-semibold text-white">Needs attention</h3>
+        <h3 className="text-base font-semibold text-white">Needs Attention</h3>
+        <p className="mb-3 text-xs" style={{ color: VIZ.muted }}>Things waiting for a decision from you</p>
         {!data ? <p className="text-sm" style={{ color: VIZ.muted }}>Loading…</p> : attentionCount === 0 ? (
           <p className="flex items-center gap-2 text-sm" style={{ color: VIZ.textSecondary }}><CheckCircle2 className="h-5 w-5" style={{ color: VIZ.good }} aria-hidden />All clear: no pending withdrawals, unread messages or dormant balances.</p>
         ) : (
@@ -109,29 +119,29 @@ export default function AdminOverview() {
       {/* 2. money in vs money out */}
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <StatTile hero loading={loading} label="Net cash flow" value={cur ? money(netNow) : "—"} delta={cur ? delta(netNow, netPrev) : undefined}
-            sub={cur ? `${money(cur.deposits)} in − ${money(cur.withdrawals)} out` : undefined} />
+          <StatTile hero loading={loading} label="Net Cash Flow" value={cur ? money(netNow) : "—"} delta={cur ? delta(netNow, netPrev) : undefined}
+            sub={cur ? `${money(cur.deposits)} deposited − ${money(cur.withdrawals)} withdrawn` : undefined} />
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
-          <StatTile loading={loading} label="Deposits credited" value={cur ? money(cur.deposits) : "—"} delta={cur ? delta(cur.deposits, prev.deposits) : undefined}  sub={cur ? `${num(cur.depositCount)} deposits` : undefined} />
-          <StatTile loading={loading} label="Withdrawals paid" value={cur ? money(cur.withdrawals) : "—"} delta={cur ? delta(cur.withdrawals, prev.withdrawals) : undefined} upIs="neutral"  sub={cur ? `${num(cur.withdrawalCount)} payouts` : undefined} />
+          <StatTile loading={loading} label="Total Deposits" value={cur ? money(cur.deposits) : "—"} delta={cur ? delta(cur.deposits, prev.deposits) : undefined}  sub={cur ? `${num(cur.depositCount)} deposit${cur.depositCount === 1 ? "" : "s"} credited to users` : undefined} />
+          <StatTile loading={loading} label="Total Withdrawals" value={cur ? money(cur.withdrawals) : "—"} delta={cur ? delta(cur.withdrawals, prev.withdrawals) : undefined} upIs="neutral"  sub={cur ? `${num(cur.withdrawalCount)} payout${cur.withdrawalCount === 1 ? "" : "s"} approved and sent` : undefined} />
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile loading={loading} label="New users" value={cur ? num(cur.newUsers) : "—"} delta={cur ? delta(cur.newUsers, prev.newUsers) : undefined}  sub={cur ? `${num(cur.newDepositors)} made a first deposit` : undefined} />
-        <StatTile loading={loading} label="Active users" value={cur ? num(cur.activeUsers) : "—"} delta={cur ? delta(cur.activeUsers, prev.activeUsers) : undefined} sub={snap ? `of ${num(snap.users)} users` : undefined} />
-        <StatTile loading={loading} label="Machine investments" value={cur ? money(cur.investments) : "—"} delta={cur ? delta(cur.investments, prev.investments) : undefined}  sub="bought from balances" />
-        <StatTile loading={loading} label="Mining profit paid" value={cur ? money(cur.profitPaid) : "—"} delta={cur ? delta(cur.profitPaid, prev.profitPaid) : undefined} upIs="neutral"  sub={cur && cur.referralPaid ? `+ ${money(cur.referralPaid)} referral bonuses` : "credited to users"} />
+        <StatTile loading={loading} label="New Users" value={cur ? num(cur.newUsers) : "—"} delta={cur ? delta(cur.newUsers, prev.newUsers) : undefined}  sub={cur ? `${num(cur.newDepositors)} of them made a first deposit` : undefined} />
+        <StatTile loading={loading} label="Active Users" value={cur ? num(cur.activeUsers) : "—"} delta={cur ? delta(cur.activeUsers, prev.activeUsers) : undefined} sub={snap ? `had activity, out of ${num(snap.users)} total users` : undefined} />
+        <StatTile loading={loading} label="Machine & Share Purchases" value={cur ? money(cur.investments) : "—"} delta={cur ? delta(cur.investments, prev.investments) : undefined}  sub="spent from user balances" />
+        <StatTile loading={loading} label="Profit Paid to Users" value={cur ? money(cur.profitPaid) : "—"} delta={cur ? delta(cur.profitPaid, prev.profitPaid) : undefined} upIs="neutral"  sub={cur && cur.referralPaid ? `+ ${money(cur.referralPaid)} referral bonuses` : "credited to users"} />
       </div>
 
       {/* 3. who and what */}
       <div className="grid gap-4 xl:grid-cols-5">
-        <Card className="xl:col-span-2" title="Funds held for users" subtitle="What the platform owes today (not period-bound)">
+        <Card className="xl:col-span-2" title="Customer Funds Held" subtitle="Total balance owed to users right now (not limited to the selected period)">
           {snap ? (
             <div>
               <p className="text-[32px] font-semibold leading-tight text-white">{money(snap.fundsHeld)}</p>
-              <p className="text-xs" style={{ color: VIZ.muted }}>{num(snap.usersWithBalance)} users hold a balance</p>
+              <p className="text-xs" style={{ color: VIZ.muted }}>Held by {num(snap.usersWithBalance)} user{snap.usersWithBalance === 1 ? "" : "s"} with a balance</p>
               <div className="mt-3 flex h-2.5 w-full gap-[2px] overflow-hidden rounded-full" role="img" aria-label={`Deposited ${money(snap.fundsDeposited)}, profit ${money(snap.fundsProfit)}`}>
                 <div style={{ width: `${snap.fundsHeld ? (snap.fundsDeposited / snap.fundsHeld) * 100 : 0}%`, background: VIZ.deposits }} />
                 <div style={{ width: `${snap.fundsHeld ? (snap.fundsProfit / snap.fundsHeld) * 100 : 0}%`, background: VIZ.profit }} />
@@ -141,16 +151,16 @@ export default function AdminOverview() {
                 <li className="flex justify-between"><span className="flex items-center gap-1.5"><i className="inline-block h-2 w-2 rounded-sm" style={{ background: VIZ.profit }} />Mining profit</span><strong className="text-white">{money(snap.fundsProfit)}</strong></li>
               </ul>
               <div className="mt-4 border-t pt-3 text-xs" style={{ borderColor: VIZ.grid, color: VIZ.textSecondary }}>
-                <p className="flex justify-between"><span>Pending withdrawals vs funds</span><strong className="text-white">{snap.fundsHeld ? `${Math.round(((pending?.amount || 0) / snap.fundsHeld) * 100)}%` : "—"}</strong></p>
-                <p className="mt-1 flex justify-between"><span>Top 5 holders' share</span>
+                <p className="flex justify-between"><span>Pending withdrawals as % of funds</span><strong className="text-white">{snap.fundsHeld ? `${Math.round(((pending?.amount || 0) / snap.fundsHeld) * 100)}%` : "—"}</strong></p>
+                <p className="mt-1 flex justify-between"><span>Top 5 users' share of funds</span>
                   <strong style={{ color: snap.top5Share > 0.75 ? VIZ.serious : "#fff" }}>{Math.round((snap.top5Share || 0) * 100)}%{snap.top5Share > 0.75 ? " ▲ concentrated" : ""}</strong></p>
-                <p className="mt-1 flex justify-between"><span>Machines / shares running</span><strong className="text-white">{num(snap.activeMachines)} / {num(snap.activeShares)}</strong></p>
+                <p className="mt-1 flex justify-between"><span>Active machines / shares</span><strong className="text-white">{num(snap.activeMachines)} / {num(snap.activeShares)}</strong></p>
               </div>
             </div>
           ) : <p className="text-sm" style={{ color: VIZ.muted }}>Loading…</p>}
         </Card>
-        <Card className="xl:col-span-3" title="Largest balances" subtitle="Where the money sits"
-          action={<Link href="/Dashboard/AllUser?sort=balance&dir=desc" className="text-xs font-medium text-green-400 hover:underline">All users</Link>}>
+        <Card className="xl:col-span-3" title="Top Balances" subtitle="The users holding the most money, with their share of all funds"
+          action={<Link href="/Dashboard/AllUser?sort=balance&dir=desc" className="text-xs font-medium text-green-400 hover:underline">See all users</Link>}>
           {(att?.topUsers || []).length === 0 ? <p className="py-6 text-center text-sm" style={{ color: VIZ.muted }}>No balances yet</p> : (
             <ol className="space-y-3">
               {att.topUsers.map((u: any, i: number) => (
@@ -171,7 +181,7 @@ export default function AdminOverview() {
       </div>
 
       <div className="grid gap-4">
-        <Card title="Latest ledger activity" subtitle="Every money movement, newest first"
+        <Card title="Latest Ledger Activity" subtitle="The 8 most recent entries, newest first"
           action={<Link href="/Dashboard/Ledger" className="inline-flex items-center gap-1 text-xs font-medium text-green-400 hover:underline">Open ledger <ArrowRight className="h-3.5 w-3.5" aria-hidden /></Link>}>
           <div className="relative overflow-x-auto">
             <table className="w-full min-w-[480px] text-left text-sm">
