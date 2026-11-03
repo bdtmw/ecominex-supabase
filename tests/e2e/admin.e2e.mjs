@@ -78,6 +78,8 @@ check("overview: 'Funds held' equals the sum of balances", (await page.getByText
 const top = k30.attention.topUsers[0];
 check("overview: largest balance listed first", (await text(page.locator("section", { hasText: "Top Balances" }).locator("ol li").first())).includes(money(top.totalBalance)), top.name);
 
+await page.locator("[data-strip]").screenshot({ path: `${OUT}/1c-strip.png` });
+await page.locator("section", { hasText: "Latest Activity" }).last().screenshot({ path: `${OUT}/1d-latest.png` });
 // no charts on the overview
 check("overview: no charts are rendered", (await page.locator('svg[role="img"][aria-label*="arrow keys"]').count()) === 0);
 await page.evaluate(() => window.scrollTo(0, 0));

@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, CheckCircle2, Clock, MessageSquare, UserX } from "lucide-react";
+import { AlertTriangle, ArrowDownLeft, ArrowRight, ArrowUpRight, CheckCircle2, Clock, Coins, MessageSquare, ShoppingCart, UserCheck, UserX } from "lucide-react";
 import { VIZ, ageLabel, compact, delta, money, money2, num } from "./viz";
 import { useAdminFetch } from "./useAdminFetch";
 import { useUrlState } from "./useUrlState";
@@ -99,14 +99,23 @@ export default function AdminOverview() {
         <StatTile loading={loading} label="New Users" value={cur ? num(cur.newUsers) : "—"} delta={cur ? delta(cur.newUsers, prev.newUsers) : undefined} sub={cur ? `${num(cur.newDepositors)} deposited` : undefined} />
       </div>
 
-      {/* secondary figures: one quiet strip instead of more tiles */}
-      <dl data-strip className="flex flex-wrap gap-x-8 gap-y-2 rounded-2xl bg-[#1e1e1e] px-4 py-3 text-sm">
+      {/* secondary figures: three quiet cards */}
+      <dl data-strip className="grid gap-3 sm:grid-cols-3">
         {[
-          { l: "Active users", v: cur ? `${num(cur.activeUsers)} of ${num(snap?.users ?? 0)}` : "—" },
-          { l: "Machine & Share Purchases", v: cur ? money(cur.investments) : "—" },
-          { l: "Profit Paid to Users", v: cur ? money(cur.profitPaid) : "—" },
+          { l: "Active users", v: cur ? `${num(cur.activeUsers)} of ${num(snap?.users ?? 0)}` : "—", hint: "had activity in this period", Icon: UserCheck, pct: cur && snap?.users ? cur.activeUsers / snap.users : null },
+          { l: "Machine & Share Purchases", v: cur ? money(cur.investments) : "—", hint: "spent from user balances", Icon: ShoppingCart },
+          { l: "Profit Paid to Users", v: cur ? money(cur.profitPaid) : "—", hint: "mining and share profit credited", Icon: Coins },
         ].map((x) => (
-          <div key={x.l} className="flex items-baseline gap-2"><dt style={{ color: VIZ.muted }}>{x.l}</dt><dd className="font-semibold tabular-nums text-white">{x.v}</dd></div>
+          <div key={x.l} className="flex items-center gap-3 rounded-2xl bg-[#1e1e1e] px-4 py-3" style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5" aria-hidden><x.Icon className="h-5 w-5" style={{ color: VIZ.textSecondary }} /></span>
+            <div className="min-w-0 flex-1">
+              <dt className="truncate text-xs" style={{ color: VIZ.muted }}>{x.l}</dt>
+              <dd className="text-xl font-semibold tabular-nums text-white">{x.v}</dd>
+              {x.pct != null ? (
+                <div className="mt-1 h-1 rounded-full" style={{ background: VIZ.grid }} aria-hidden><div className="h-full rounded-full" style={{ width: `${Math.max(2, Math.min(100, x.pct * 100))}%`, background: VIZ.deposits }} /></div>
+              ) : <p className="truncate text-[11px]" style={{ color: VIZ.muted }}>{x.hint}</p>}
+            </div>
+          </div>
         ))}
       </dl>
 
@@ -148,23 +157,33 @@ export default function AdminOverview() {
         </Card>
       </div>
 
-      <Card title="Latest Activity" subtitle="Last 5 ledger entries"
+      <Card title="Latest Activity" subtitle="The 5 most recent ledger entries"
         action={<Link href="/Dashboard/Ledger" className="inline-flex items-center gap-1 text-xs font-medium text-green-400 hover:underline">Open ledger <ArrowRight className="h-3.5 w-3.5" aria-hidden /></Link>}>
-        <div className="relative overflow-x-auto">
-          <table className="w-full min-w-[420px] text-left text-sm">
-            <tbody>
-              {(recent?.rows || []).map((r: any) => (
-                <tr key={r.id} className="border-t first:border-t-0" style={{ borderColor: VIZ.grid }}>
-                  <td className="py-2 pr-3 text-xs" style={{ color: VIZ.textSecondary }}>{new Date(r.date).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
-                  <td className="max-w-[160px] truncate py-2 pr-3 text-white">{r.userName || r.userEmail}</td>
-                  <td className="py-2 pr-3" style={{ color: VIZ.textSecondary }}>{r.typeLabel}{r.status === "pending" && <span className="ml-1.5 rounded-full border px-1.5 text-[10px]" style={{ borderColor: VIZ.warning, color: VIZ.warning }}>pending</span>}</td>
-                  <td className="py-2 text-right tabular-nums text-white">{r.direction === "credit" ? "+" : "−"}{money2(r.amount)}</td>
-                </tr>
-              ))}
-              {recent && recent.rows.length === 0 && <tr><td colSpan={4} className="py-6 text-center" style={{ color: VIZ.muted }}>No transactions yet</td></tr>}
-            </tbody>
-          </table>
-        </div>
+        <ul className="divide-y" style={{ borderColor: VIZ.grid }}>
+          {(recent?.rows || []).map((r: any) => {
+            const credit = r.direction === "credit", pend = r.status === "pending", rej = r.status === "rejected";
+            const tone = rej ? VIZ.muted : pend ? VIZ.warning : credit ? VIZ.good : VIZ.textSecondary;
+            const Icon = credit ? ArrowDownLeft : ArrowUpRight;
+            return (
+              <li key={r.id} className="flex items-center gap-3 py-2.5" style={{ borderColor: VIZ.grid }}>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/5" aria-hidden><Icon className="h-4 w-4" style={{ color: tone }} /></span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-white">{r.userName || r.userEmail}</p>
+                  <p className="truncate text-xs" style={{ color: VIZ.muted }}>
+                    {r.typeLabel}
+                    {pend && <span className="ml-1.5 rounded-full border px-1.5 text-[10px]" style={{ borderColor: VIZ.warning, color: VIZ.warning }}>pending</span>}
+                    {rej && <span className="ml-1.5 rounded-full border px-1.5 text-[10px]" style={{ borderColor: VIZ.muted }}>rejected</span>}
+                    {" · "}{new Date(r.date).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
+                <p className="shrink-0 text-sm font-semibold tabular-nums" style={{ color: rej ? VIZ.muted : pend ? VIZ.warning : credit ? VIZ.good : VIZ.text, textDecoration: rej ? "line-through" : undefined }}>
+                  {credit ? "+" : "−"}{money2(r.amount)}
+                </p>
+              </li>
+            );
+          })}
+          {recent && recent.rows.length === 0 && <li className="py-6 text-center text-sm" style={{ color: VIZ.muted }}>No transactions yet</li>}
+        </ul>
       </Card>
     </div>
   );
