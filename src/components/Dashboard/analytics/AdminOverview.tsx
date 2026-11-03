@@ -32,116 +32,90 @@ export default function AdminOverview() {
   }, [range, from, to]);
 
   const { data, loading, error } = useAdminFetch<any>(`/api/v1/admin/analytics?${qs}`);
-  const { data: recent } = useAdminFetch<any>("/api/v1/admin/ledger?limit=8");
+  const { data: recent } = useAdminFetch<any>("/api/v1/admin/ledger?limit=5");
 
   const cur = data?.current, prev = data?.previous, snap = data?.snapshot, att = data?.attention;
-
   const netNow = cur ? cur.deposits - cur.withdrawals : 0;
   const netPrev = prev ? prev.deposits - prev.withdrawals : 0;
-  const periodLabel = data ? `${new Date(data.from).toISOString().slice(0, 10)} → ${new Date(new Date(data.to).getTime() - 86400000).toISOString().slice(0, 10)} (UTC)` : "";
+  const days = data ? Math.round((new Date(data.to).getTime() - new Date(data.from).getTime()) / 86400000) : 0;
 
   const pending = att?.pendingWithdrawals;
   const oldestHours = pending?.oldestAt ? (Date.now() - new Date(pending.oldestAt).getTime()) / 3600000 : 0;
   const attentionCount = (pending?.count ? 1 : 0) + (snap?.unreadContacts ? 1 : 0) + (att?.dormantWithFunds ? 1 : 0) + (att?.depositsNeedingReview ? 1 : 0);
+  const pendingTone = sev(oldestHours) === "critical" ? VIZ.critical : sev(oldestHours) === "warning" ? VIZ.warning : VIZ.axis;
+
+  const Alert = ({ icon: Icon, tone, title, extra, href, cta }: any) => (
+    <Link href={href} className="group flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition hover:bg-white/[0.03]" style={{ borderColor: tone }}>
+      <span className="min-w-0">
+        <span className="flex items-center gap-2 text-sm font-medium text-white"><Icon className="h-4 w-4 shrink-0" style={{ color: tone === VIZ.axis ? VIZ.textSecondary : tone }} aria-hidden />{title}</span>
+        {extra && <span className="mt-0.5 block text-xs" style={{ color: VIZ.muted }}>{extra}</span>}
+      </span>
+      <span className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-green-400 group-hover:underline">{cta}<ArrowRight className="h-4 w-4" aria-hidden /></span>
+    </Link>
+  );
 
   return (
     <div className="space-y-5">
-      {/* filters: one row above everything they scope */}
       <div className="flex flex-wrap items-center gap-3">
         <RangePicker range={range} from={from} to={to} onChange={(r) => url.set({ range: r.range, from: r.from, to: r.to })} />
-        <p className="text-xs" style={{ color: VIZ.muted }}>{periodLabel}{data && <span> · changes are compared with the previous {Math.round((new Date(data.to).getTime() - new Date(data.from).getTime()) / 86400000)} days</span>}</p>
+        {data && <p className="text-xs" style={{ color: VIZ.muted }}>Compared with the previous {days} days</p>}
       </div>
-
-      {cur && (
-        <p className="rounded-xl bg-[#1e1e1e] px-4 py-3 text-sm" style={{ color: VIZ.textSecondary }} data-summary>
-          In this period users deposited <strong className="text-white">{money(cur.deposits)}</strong> and withdrew <strong className="text-white">{money(cur.withdrawals)}</strong>,
-          a net of <strong style={{ color: netNow >= 0 ? VIZ.good : "#f87171" }}>{netNow >= 0 ? "+" : "−"}{money(Math.abs(netNow))}</strong>.
-          {" "}<strong className="text-white">{num(cur.newUsers)}</strong> new user{cur.newUsers === 1 ? "" : "s"} joined
-          {pending?.count > 0 ? <> and <strong style={{ color: VIZ.warning }}>{pending.count} withdrawal{pending.count === 1 ? " is" : "s are"} waiting for your approval</strong></> : <> and no withdrawals are waiting</>}.
-        </p>
-      )}
 
       {error && <div role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
 
-      {/* 1. what needs a decision today */}
-      <section aria-label="Needs attention" className="rounded-2xl bg-[#1e1e1e] p-4 sm:p-5">
+      {/* only what needs a decision, one line each */}
+      <section aria-label="Needs attention" className="space-y-2">
         <h3 className="text-base font-semibold text-white">Needs Attention</h3>
-        <p className="mb-3 text-xs" style={{ color: VIZ.muted }}>Things waiting for a decision from you</p>
         {!data ? <p className="text-sm" style={{ color: VIZ.muted }}>Loading…</p> : attentionCount === 0 ? (
-          <p className="flex items-center gap-2 text-sm" style={{ color: VIZ.textSecondary }}><CheckCircle2 className="h-5 w-5" style={{ color: VIZ.good }} aria-hidden />All clear: no pending withdrawals, unread messages or dormant balances.</p>
+          <p className="flex items-center gap-2 rounded-xl bg-[#1e1e1e] px-4 py-3 text-sm" style={{ color: VIZ.textSecondary }}><CheckCircle2 className="h-5 w-5" style={{ color: VIZ.good }} aria-hidden />All clear. Nothing is waiting for you.</p>
         ) : (
-          <div className="grid gap-3 lg:grid-cols-3">
+          <div className="grid gap-2 lg:grid-cols-2">
             {pending?.count > 0 && (
-              <div className="rounded-xl border p-4 lg:col-span-1" style={{ borderColor: sev(oldestHours) === "critical" ? VIZ.critical : sev(oldestHours) === "warning" ? VIZ.warning : VIZ.axis }}>
-                <p className="flex items-center gap-2 text-sm font-medium text-white">
-                  {sev(oldestHours) === "ok" ? <Clock className="h-4 w-4" style={{ color: VIZ.textSecondary }} aria-hidden /> : <AlertTriangle className="h-4 w-4" style={{ color: sev(oldestHours) === "critical" ? VIZ.critical : VIZ.warning }} aria-hidden />}
-                  {pending.count} pending withdrawal{pending.count === 1 ? "" : "s"}
-                  {sev(oldestHours) !== "ok" && <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold text-black" style={{ background: sev(oldestHours) === "critical" ? VIZ.critical : VIZ.warning }}>{sev(oldestHours) === "critical" ? "Overdue" : "Waiting 24h+"}</span>}
-                </p>
-                <p className="mt-1 text-2xl font-semibold text-white">{money(pending.amount)}</p>
-                <p className="text-xs" style={{ color: VIZ.muted }}>Oldest waiting {ageLabel(pending.oldestAt)}</p>
-                <ul className="mt-3 space-y-1.5">
-                  {(att.oldestPending || []).slice(0, 3).map((w: any) => (
-                    <li key={w.id} className="flex items-center justify-between gap-2 text-xs">
-                      <span className="min-w-0 truncate" style={{ color: VIZ.textSecondary }}>{w.userName || w.userEmail}</span>
-                      <span className="shrink-0 tabular-nums text-white">{money(w.amount)} <span style={{ color: VIZ.muted }}>· {ageLabel(w.requestedAt)}</span></span>
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/Dashboard/AllTransaction" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-green-400 hover:underline">Review withdrawals <ArrowRight className="h-4 w-4" aria-hidden /></Link>
-              </div>
-            )}
-            {snap?.unreadContacts > 0 && (
-              <div className="rounded-xl border p-4" style={{ borderColor: VIZ.axis }}>
-                <p className="flex items-center gap-2 text-sm font-medium text-white"><MessageSquare className="h-4 w-4" style={{ color: VIZ.textSecondary }} aria-hidden />{snap.unreadContacts} unread message{snap.unreadContacts === 1 ? "" : "s"}</p>
-                <p className="mt-1 text-xs" style={{ color: VIZ.muted }}>Contact-form enquiries nobody has opened yet.</p>
-                <Link href="/Dashboard/contactUs" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-green-400 hover:underline">Open inbox <ArrowRight className="h-4 w-4" aria-hidden /></Link>
-              </div>
+              <Alert icon={sev(oldestHours) === "ok" ? Clock : AlertTriangle} tone={pendingTone} href="/Dashboard/AllTransaction" cta="Review"
+                title={<>{pending.count} pending withdrawal{pending.count === 1 ? "" : "s"} · {money(pending.amount)}{sev(oldestHours) !== "ok" && <span className="ml-2 rounded-full px-2 py-0.5 text-[11px] font-semibold text-black" style={{ background: pendingTone }}>{sev(oldestHours) === "critical" ? "Overdue" : "Aging"}</span>}</>}
+                extra={`Oldest waiting ${ageLabel(pending.oldestAt)}`} />
             )}
             {att?.depositsNeedingReview > 0 && (
-              <div className="rounded-xl border p-4" style={{ borderColor: VIZ.warning }}>
-                <p className="flex items-center gap-2 text-sm font-medium text-white"><AlertTriangle className="h-4 w-4" style={{ color: VIZ.warning }} aria-hidden />{att.depositsNeedingReview} deposit{att.depositsNeedingReview === 1 ? "" : "s"} need review</p>
-                <p className="mt-1 text-xs" style={{ color: VIZ.muted }}>Partial payments, price mismatches or refunds. Nothing was credited automatically.</p>
-                <Link href="/Dashboard/Deposits?tab=review" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-green-400 hover:underline">Review deposits <ArrowRight className="h-4 w-4" aria-hidden /></Link>
-              </div>
+              <Alert icon={AlertTriangle} tone={VIZ.warning} href="/Dashboard/Deposits?tab=review" cta="Review"
+                title={`${att.depositsNeedingReview} deposit${att.depositsNeedingReview === 1 ? "" : "s"} need review`} extra="Nothing was credited automatically" />
+            )}
+            {snap?.unreadContacts > 0 && (
+              <Alert icon={MessageSquare} tone={VIZ.axis} href="/Dashboard/contactUs" cta="Open"
+                title={`${snap.unreadContacts} unread message${snap.unreadContacts === 1 ? "" : "s"}`} />
             )}
             {att?.dormantWithFunds > 0 && (
-              <div className="rounded-xl border p-4" style={{ borderColor: VIZ.axis }}>
-                <p className="flex items-center gap-2 text-sm font-medium text-white"><UserX className="h-4 w-4" style={{ color: VIZ.textSecondary }} aria-hidden />{att.dormantWithFunds} dormant user{att.dormantWithFunds === 1 ? "" : "s"} holding funds</p>
-                <p className="mt-1 text-xs" style={{ color: VIZ.muted }}>Balance above zero but no activity for 30+ days. Worth a check-in.</p>
-                <Link href="/Dashboard/AllUser?segment=dormant" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-green-400 hover:underline">See these users <ArrowRight className="h-4 w-4" aria-hidden /></Link>
-              </div>
+              <Alert icon={UserX} tone={VIZ.axis} href="/Dashboard/AllUser?segment=dormant" cta="See users"
+                title={`${att.dormantWithFunds} dormant user${att.dormantWithFunds === 1 ? "" : "s"} holding funds`} extra="No activity for 30+ days" />
             )}
           </div>
         )}
       </section>
 
-      {/* 2. money in vs money out */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-          <StatTile hero loading={loading} label="Net Cash Flow" value={cur ? money(netNow) : "—"} delta={cur ? delta(netNow, netPrev) : undefined}
-            sub={cur ? `${money(cur.deposits)} deposited − ${money(cur.withdrawals)} withdrawn` : undefined} />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
-          <StatTile loading={loading} label="Total Deposits" value={cur ? money(cur.deposits) : "—"} delta={cur ? delta(cur.deposits, prev.deposits) : undefined}  sub={cur ? `${num(cur.depositCount)} deposit${cur.depositCount === 1 ? "" : "s"} credited to users` : undefined} />
-          <StatTile loading={loading} label="Total Withdrawals" value={cur ? money(cur.withdrawals) : "—"} delta={cur ? delta(cur.withdrawals, prev.withdrawals) : undefined} upIs="neutral"  sub={cur ? `${num(cur.withdrawalCount)} payout${cur.withdrawalCount === 1 ? "" : "s"} approved and sent` : undefined} />
-        </div>
-      </div>
-
+      {/* the four numbers that matter */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile loading={loading} label="New Users" value={cur ? num(cur.newUsers) : "—"} delta={cur ? delta(cur.newUsers, prev.newUsers) : undefined}  sub={cur ? `${num(cur.newDepositors)} of them made a first deposit` : undefined} />
-        <StatTile loading={loading} label="Active Users" value={cur ? num(cur.activeUsers) : "—"} delta={cur ? delta(cur.activeUsers, prev.activeUsers) : undefined} sub={snap ? `had activity, out of ${num(snap.users)} total users` : undefined} />
-        <StatTile loading={loading} label="Machine & Share Purchases" value={cur ? money(cur.investments) : "—"} delta={cur ? delta(cur.investments, prev.investments) : undefined}  sub="spent from user balances" />
-        <StatTile loading={loading} label="Profit Paid to Users" value={cur ? money(cur.profitPaid) : "—"} delta={cur ? delta(cur.profitPaid, prev.profitPaid) : undefined} upIs="neutral"  sub={cur && cur.referralPaid ? `+ ${money(cur.referralPaid)} referral bonuses` : "credited to users"} />
+        <StatTile loading={loading} label="Net Cash Flow" value={cur ? money(netNow) : "—"} delta={cur ? delta(netNow, netPrev) : undefined} />
+        <StatTile loading={loading} label="Total Deposits" value={cur ? money(cur.deposits) : "—"} delta={cur ? delta(cur.deposits, prev.deposits) : undefined} sub={cur ? `${num(cur.depositCount)} credited` : undefined} />
+        <StatTile loading={loading} label="Total Withdrawals" value={cur ? money(cur.withdrawals) : "—"} delta={cur ? delta(cur.withdrawals, prev.withdrawals) : undefined} upIs="neutral" sub={cur ? `${num(cur.withdrawalCount)} paid` : undefined} />
+        <StatTile loading={loading} label="New Users" value={cur ? num(cur.newUsers) : "—"} delta={cur ? delta(cur.newUsers, prev.newUsers) : undefined} sub={cur ? `${num(cur.newDepositors)} deposited` : undefined} />
       </div>
 
-      {/* 3. who and what */}
+      {/* secondary figures: one quiet strip instead of more tiles */}
+      <dl data-strip className="flex flex-wrap gap-x-8 gap-y-2 rounded-2xl bg-[#1e1e1e] px-4 py-3 text-sm">
+        {[
+          { l: "Active users", v: cur ? `${num(cur.activeUsers)} of ${num(snap?.users ?? 0)}` : "—" },
+          { l: "Machine & Share Purchases", v: cur ? money(cur.investments) : "—" },
+          { l: "Profit Paid to Users", v: cur ? money(cur.profitPaid) : "—" },
+        ].map((x) => (
+          <div key={x.l} className="flex items-baseline gap-2"><dt style={{ color: VIZ.muted }}>{x.l}</dt><dd className="font-semibold tabular-nums text-white">{x.v}</dd></div>
+        ))}
+      </dl>
+
       <div className="grid gap-4 xl:grid-cols-5">
-        <Card className="xl:col-span-2" title="Customer Funds Held" subtitle="Total balance owed to users right now (not limited to the selected period)">
+        <Card className="xl:col-span-2" title="Customer Funds Held" subtitle="Owed to users right now">
           {snap ? (
             <div>
               <p className="text-[32px] font-semibold leading-tight text-white">{money(snap.fundsHeld)}</p>
-              <p className="text-xs" style={{ color: VIZ.muted }}>Held by {num(snap.usersWithBalance)} user{snap.usersWithBalance === 1 ? "" : "s"} with a balance</p>
+              <p className="text-xs" style={{ color: VIZ.muted }}>{num(snap.usersWithBalance)} user{snap.usersWithBalance === 1 ? "" : "s"} hold a balance</p>
               <div className="mt-3 flex h-2.5 w-full gap-[2px] overflow-hidden rounded-full" role="img" aria-label={`Deposited ${money(snap.fundsDeposited)}, profit ${money(snap.fundsProfit)}`}>
                 <div style={{ width: `${snap.fundsHeld ? (snap.fundsDeposited / snap.fundsHeld) * 100 : 0}%`, background: VIZ.deposits }} />
                 <div style={{ width: `${snap.fundsHeld ? (snap.fundsProfit / snap.fundsHeld) * 100 : 0}%`, background: VIZ.profit }} />
@@ -150,20 +124,15 @@ export default function AdminOverview() {
                 <li className="flex justify-between"><span className="flex items-center gap-1.5"><i className="inline-block h-2 w-2 rounded-sm" style={{ background: VIZ.deposits }} />Deposited funds</span><strong className="text-white">{money(snap.fundsDeposited)}</strong></li>
                 <li className="flex justify-between"><span className="flex items-center gap-1.5"><i className="inline-block h-2 w-2 rounded-sm" style={{ background: VIZ.profit }} />Mining profit</span><strong className="text-white">{money(snap.fundsProfit)}</strong></li>
               </ul>
-              <div className="mt-4 border-t pt-3 text-xs" style={{ borderColor: VIZ.grid, color: VIZ.textSecondary }}>
-                <p className="flex justify-between"><span>Pending withdrawals as % of funds</span><strong className="text-white">{snap.fundsHeld ? `${Math.round(((pending?.amount || 0) / snap.fundsHeld) * 100)}%` : "—"}</strong></p>
-                <p className="mt-1 flex justify-between"><span>Top 5 users' share of funds</span>
-                  <strong style={{ color: snap.top5Share > 0.75 ? VIZ.serious : "#fff" }}>{Math.round((snap.top5Share || 0) * 100)}%{snap.top5Share > 0.75 ? " ▲ concentrated" : ""}</strong></p>
-                <p className="mt-1 flex justify-between"><span>Active machines / shares</span><strong className="text-white">{num(snap.activeMachines)} / {num(snap.activeShares)}</strong></p>
-              </div>
+              {snap.top5Share > 0.75 && <p className="mt-3 text-xs" style={{ color: VIZ.serious }}>▲ Concentrated: the top 5 users hold {Math.round(snap.top5Share * 100)}% of all funds.</p>}
             </div>
           ) : <p className="text-sm" style={{ color: VIZ.muted }}>Loading…</p>}
         </Card>
-        <Card className="xl:col-span-3" title="Top Balances" subtitle="The users holding the most money, with their share of all funds"
+        <Card className="xl:col-span-3" title="Top Balances" subtitle="Who holds the most"
           action={<Link href="/Dashboard/AllUser?sort=balance&dir=desc" className="text-xs font-medium text-green-400 hover:underline">See all users</Link>}>
           {(att?.topUsers || []).length === 0 ? <p className="py-6 text-center text-sm" style={{ color: VIZ.muted }}>No balances yet</p> : (
             <ol className="space-y-3">
-              {att.topUsers.map((u: any, i: number) => (
+              {att.topUsers.slice(0, 5).map((u: any, i: number) => (
                 <li key={u.id}>
                   <div className="flex items-center justify-between gap-2 text-sm">
                     <Link href={`/Dashboard/AllUser/${u.id}`} className="min-w-0 truncate text-white hover:text-green-400"><span className="mr-2" style={{ color: VIZ.muted }}>{i + 1}</span>{u.name || u.email}</Link>
@@ -177,30 +146,26 @@ export default function AdminOverview() {
             </ol>
           )}
         </Card>
-
       </div>
 
-      <div className="grid gap-4">
-        <Card title="Latest Ledger Activity" subtitle="The 8 most recent entries, newest first"
-          action={<Link href="/Dashboard/Ledger" className="inline-flex items-center gap-1 text-xs font-medium text-green-400 hover:underline">Open ledger <ArrowRight className="h-3.5 w-3.5" aria-hidden /></Link>}>
-          <div className="relative overflow-x-auto">
-            <table className="w-full min-w-[480px] text-left text-sm">
-              <thead><tr className="text-xs" style={{ color: VIZ.muted }}><th className="pb-2 font-medium">When</th><th className="pb-2 font-medium">User</th><th className="pb-2 font-medium">Type</th><th className="pb-2 text-right font-medium">Amount</th></tr></thead>
-              <tbody>
-                {(recent?.rows || []).map((r: any) => (
-                  <tr key={r.id} className="border-t" style={{ borderColor: VIZ.grid }}>
-                    <td className="py-2 pr-3 text-xs" style={{ color: VIZ.textSecondary }}>{new Date(r.date).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
-                    <td className="max-w-[160px] truncate py-2 pr-3 text-white">{r.userName || r.userEmail}</td>
-                    <td className="py-2 pr-3" style={{ color: VIZ.textSecondary }}>{r.typeLabel}{r.status === "pending" && <span className="ml-1.5 rounded-full border px-1.5 text-[10px]" style={{ borderColor: VIZ.warning, color: VIZ.warning }}>pending</span>}</td>
-                    <td className="py-2 text-right tabular-nums text-white">{r.direction === "credit" ? "+" : "−"}{money2(r.amount)}</td>
-                  </tr>
-                ))}
-                {recent && recent.rows.length === 0 && <tr><td colSpan={4} className="py-6 text-center" style={{ color: VIZ.muted }}>No transactions yet</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      </div>
+      <Card title="Latest Activity" subtitle="Last 5 ledger entries"
+        action={<Link href="/Dashboard/Ledger" className="inline-flex items-center gap-1 text-xs font-medium text-green-400 hover:underline">Open ledger <ArrowRight className="h-3.5 w-3.5" aria-hidden /></Link>}>
+        <div className="relative overflow-x-auto">
+          <table className="w-full min-w-[420px] text-left text-sm">
+            <tbody>
+              {(recent?.rows || []).map((r: any) => (
+                <tr key={r.id} className="border-t first:border-t-0" style={{ borderColor: VIZ.grid }}>
+                  <td className="py-2 pr-3 text-xs" style={{ color: VIZ.textSecondary }}>{new Date(r.date).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+                  <td className="max-w-[160px] truncate py-2 pr-3 text-white">{r.userName || r.userEmail}</td>
+                  <td className="py-2 pr-3" style={{ color: VIZ.textSecondary }}>{r.typeLabel}{r.status === "pending" && <span className="ml-1.5 rounded-full border px-1.5 text-[10px]" style={{ borderColor: VIZ.warning, color: VIZ.warning }}>pending</span>}</td>
+                  <td className="py-2 text-right tabular-nums text-white">{r.direction === "credit" ? "+" : "−"}{money2(r.amount)}</td>
+                </tr>
+              ))}
+              {recent && recent.rows.length === 0 && <tr><td colSpan={4} className="py-6 text-center" style={{ color: VIZ.muted }}>No transactions yet</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   );
 }

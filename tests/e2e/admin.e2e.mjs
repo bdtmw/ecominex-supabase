@@ -70,9 +70,9 @@ check("overview: hero 'Net Cash Flow' equals deposits − withdrawals from SQL",
 check("overview: 'Deposits credited' tile matches SQL", (await tileValue("Total Deposits")) === money(k30.current.deposits));
 check("overview: 'Withdrawals paid' tile matches SQL", (await tileValue("Total Withdrawals")) === money(k30.current.withdrawals));
 check("overview: 'New users' tile matches SQL", (await tileValue("New Users")) === String(k30.current.newUsers), await tileValue("New Users"));
-check("overview: 'Machine investments' and 'Mining profit paid' match SQL", (await tileValue("Machine & Share Purchases")) === money(k30.current.investments) && (await tileValue("Profit Paid to Users")) === money(k30.current.profitPaid));
+check("overview: the quiet strip shows purchases and profit paid from SQL", await (async () => { const st = await text(page.locator("[data-strip]")); return st.includes(money(k30.current.investments)) && st.includes(money(k30.current.profitPaid)); })());
 const pw = k30.attention.pendingWithdrawals;
-check("overview: attention card shows the pending count and amount", (await page.getByText(`${pw.count} pending withdrawal`).count()) === 1 && (await page.getByText(money(pw.amount), { exact: true }).count()) >= 1, `count=${pw.count} amount=${pw.amount}`);
+check("overview: attention line shows the pending count and amount", (await page.getByText(`${pw.count} pending withdrawal`).count()) === 1 && (await page.getByText(money(pw.amount)).count()) >= 1, `count=${pw.count} amount=${pw.amount}`);
 check("overview: the oldest pending request (100h) is flagged Overdue with an icon + label", (await page.getByText("Overdue", { exact: true }).count()) === 1);
 check("overview: 'Funds held' equals the sum of balances", (await page.getByText(money(k30.snapshot.fundsHeld), { exact: true }).count()) >= 1, money(k30.snapshot.fundsHeld));
 const top = k30.attention.topUsers[0];
@@ -216,10 +216,10 @@ if (Lall.total > 50) {
 await page.goto(`${BASE}/Dashboard/`);
 await page.getByText("Needs attention").waitFor();
 await page.waitForFunction(() => !document.body.innerText.includes("Loading…"));
-await page.getByRole("link", { name: /See these users/ }).click();
+await page.getByRole("link", { name: /dormant user/ }).click();
 await page.waitForURL(/AllUser\/?\?segment=dormant/);
 await page.waitForFunction(() => document.querySelectorAll("tbody tr").length >= 1);
-check("cross-link: 'See these users' opens Users on the Dormant segment", (await page.getByRole("tab", { name: /^Dormant/ }).getAttribute("aria-selected")) === "true");
+check("cross-link: the dormant-users line opens Users on the Dormant segment", (await page.getByRole("tab", { name: /^Dormant/ }).getAttribute("aria-selected")) === "true");
 check("sidebar: has Ledger under Finance and highlights it on the ledger page", await (async () => { await page.goto(`${BASE}/Dashboard/Ledger/`); await page.waitForSelector('nav[aria-label="Admin navigation"]'); return (await text(page.locator('nav[aria-label="Admin navigation"] a[aria-current="page"]'))).startsWith("Ledger"); })());
 await page.keyboard.press("Control+k");
 await page.getByRole("dialog", { name: "Jump to" }).waitFor();
